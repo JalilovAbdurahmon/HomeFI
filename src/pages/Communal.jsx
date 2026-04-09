@@ -50,7 +50,7 @@ const Communal = () => {
       color: "#6366F1",
       bg: "#E0E7FF",
     }, // Indigo
-    "Земельный Налdeог": {
+    "Земельный Налог": {
       icon: <Landmark size={22} />,
       color: "#64748B",
       bg: "#F1F5F9",
@@ -62,64 +62,7 @@ const Communal = () => {
     }, // Violet
   };
 
-  const utilityCategories = [
-    {
-      id: 1,
-      name: "Электроэнергия",
-      amount: "80,000",
-      status: "Оплачено",
-      totalSum: "500,000",
-    },
-    {
-      id: 2,
-      name: "Газ",
-      amount: "60,000",
-      status: "Оплачено",
-      totalSum: "300,000",
-    },
-    {
-      id: 3,
-      name: "Холодная Вода",
-      amount: "40,000",
-      status: "Не оплачено",
-      totalSum: "200,000",
-    },
-    {
-      id: 4,
-      name: "Горячая Вода",
-      amount: "55,000",
-      status: "Оплачено",
-      totalSum: "250,000",
-    },
-    {
-      id: 5,
-      name: "Мусор",
-      amount: "25,000",
-      status: "Оплачено",
-      totalSum: "150,000",
-    },
-    {
-      id: 6,
-      name: "Коммунальный Налог",
-      amount: "90,000",
-      status: "Не оплачено",
-      totalSum: "400,000",
-    },
-    {
-      id: 7,
-      name: "Земельный Налог",
-      amount: "120,000",
-      status: "Оплачено",
-      totalSum: "600,000",
-    },
-    {
-      id: 8,
-      name: "Налог на Имущество",
-      amount: "200,000",
-      status: "Не оплачено",
-      totalSum: "900,000",
-    },
-  ];
+  
 
   const recentReceipts = [
     { id: 1, service: "Электроэнергия", date: "02.04.2026", amount: "80,000" },
@@ -141,7 +84,7 @@ const Communal = () => {
   const { error, isLoading, data } = useQuery({
     queryKey: ["getCommunal"],
     queryFn: handleGet,
-  });
+  }); 
 
   if (isLoading) return <h1 className="text-white text-lg">Loading ...</h1>;
   if (error) return <h1>{error.message}</h1>;
