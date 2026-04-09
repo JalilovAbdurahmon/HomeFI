@@ -50,7 +50,7 @@ const Communal = () => {
       color: "#6366F1",
       bg: "#E0E7FF",
     }, // Indigo
-    "Земельный Налог": {
+    "Земельный Налdeог": {
       icon: <Landmark size={22} />,
       color: "#64748B",
       bg: "#F1F5F9",
