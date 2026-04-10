@@ -14,7 +14,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <ThemeProvider>
       <QueryClientProvider client={client}>
         <BrowserRouter>
-        <ScrollToTop />
+          <ScrollToTop />
           <App />
         </BrowserRouter>
       </QueryClientProvider>

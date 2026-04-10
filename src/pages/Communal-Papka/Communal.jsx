@@ -28,7 +28,7 @@ const Communal = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
-    createdAt: "",
+    dateOfPayment: "",
     sum: "",
     note: "",
   });
@@ -77,64 +77,7 @@ const Communal = () => {
     },
   };
 
-  const utilityCategories = [
-    {
-      id: 1,
-      name: "Электроэнергия",
-      amount: "80,000",
-      status: "Оплачено",
-      totalSum: "500,000",
-    },
-    {
-      id: 2,
-      name: "Газ",
-      amount: "60,000",
-      status: "Оплачено",
-      totalSum: "300,000",
-    },
-    {
-      id: 3,
-      name: "Холодная Вода",
-      amount: "40,000",
-      status: "Не оплачено",
-      totalSum: "200,000",
-    },
-    {
-      id: 4,
-      name: "Горячая Вода",
-      amount: "55,000",
-      status: "Оплачено",
-      totalSum: "250,000",
-    },
-    {
-      id: 5,
-      name: "Мусор",
-      amount: "25,000",
-      status: "Оплачено",
-      totalSum: "150,000",
-    },
-    {
-      id: 6,
-      name: "Коммунальный Налог",
-      amount: "90,000",
-      status: "Не оплачено",
-      totalSum: "400,000",
-    },
-    {
-      id: 7,
-      name: "Земельный Налог",
-      amount: "120,000",
-      status: "Оплачено",
-      totalSum: "600,000",
-    },
-    {
-      id: 8,
-      name: "Налог на Имущество",
-      amount: "200,000",
-      status: "Не оплачено",
-      totalSum: "900,000",
-    },
-  ];
+ 
 
   const recentReceipts = [
     { id: 1, service: "Электроэнергия", date: "02.04.2026", amount: "80,000" },
@@ -174,6 +117,21 @@ const Communal = () => {
   const onSubmit = (data) => {
     mutation.mutate(data);
   };
+
+  
+  const filterElektr = data?.filter((Elektr) => Elektr.title == "Электроэнергия").at(-1)
+  const filterIssiqSuv = data?.filter((IssiqSuv) => IssiqSuv.title == "Горячая вода").at(-1)
+  const filterSovuqSuv = data?.filter((SovuqSuv) => SovuqSuv.title == "Холодная вода").at(-1)
+  const filterGaz = data?.filter((Gaz) => Gaz.title == "Газ").at(-1)
+  const filterMusor = data?.filter((Musor) => Musor.title == "Мусор").at(-1)
+  const filterKomOplata = data?.filter((KomOplata) => KomOplata.title == "Коммунальный налог").at(-1)
+  const filterZemelniyNalog = data?.filter((ZemelniyNalog) => ZemelniyNalog.title == "Земельный налог").at(-1)
+  const filterNalogImushestvo = data?.filter((NalogImushestvo) => NalogImushestvo.title == "Налог на имущество").at(-1)
+  const filterElektroZaryad = data?.filter((ElektroZaryad) => ElektroZaryad.title == "Электро-зарядка").at(-1)
+
+  const utilityCategories = [
+    filterElektr, filterIssiqSuv, filterSovuqSuv, filterGaz, filterMusor, filterKomOplata, filterZemelniyNalog, filterNalogImushestvo, filterElektroZaryad
+  ];
 
   if (isLoading) return <h1 className="text-white text-lg">Loading ...</h1>;
   if (error) return <h1>{error.message}</h1>;
@@ -219,7 +177,7 @@ const Communal = () => {
 
               {/* Дата создания - HUDDI SIZDAGI MANTIQDA */}
               <input
-                {...register("createdAt", {
+                {...register("dateOfPayment", {
                   required: "Sana tanlanishi shart!",
                 })}
                 type="text"
@@ -325,7 +283,7 @@ const Communal = () => {
                       Последний платёж
                     </span>
                     <span className="text-[20px] font-extrabold text-slate-800">
-                      {cat.amount}{" "}
+                      {cat.sumu}{" "}
                       <small className="text-[11px] font-semibold text-slate-400">
                         сум
                       </small>
@@ -335,7 +293,7 @@ const Communal = () => {
               </div>
               <div>
                 <h3 className="font-bold text-slate-500 text-[11px] uppercase tracking-[0.2em] mb-1">
-                  {cat.name}
+                  {cat.title}
                 </h3>
               </div>
               <div className="border-t border-slate-100 pt-4 flex items-center justify-between">
