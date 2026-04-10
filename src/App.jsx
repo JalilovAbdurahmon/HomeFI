@@ -3,11 +3,11 @@ import { Route, Routes } from "react-router-dom";
 import Layout from "./pages/Layout";
 import Home from "./pages/Home";
 import BudgetUI from "./pages/Budjet";
-import Communal from "./pages/Communal/Communal";
+import Communal from "./pages/Communal-Papka/Communal";
 import Products from "./pages/Products";
 import Prochee from "./pages/Prochee";
 import FormirovaniyaZakupa from "./pages/FormirovaniyaZakupa";
-import CommunalAll from "./pages/Communal/All";
+import CommunalAll from "./pages/Communal-Papka/CommunalAll";
 
 const App = () => {
   return (
