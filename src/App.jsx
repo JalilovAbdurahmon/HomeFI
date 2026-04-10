@@ -3,10 +3,11 @@ import { Route, Routes } from "react-router-dom";
 import Layout from "./pages/Layout";
 import Home from "./pages/Home";
 import BudgetUI from "./pages/Budjet";
-import Communal from "./pages/Communal";
+import Communal from "./pages/Communal/Communal";
 import Products from "./pages/Products";
 import Prochee from "./pages/Prochee";
 import FormirovaniyaZakupa from "./pages/FormirovaniyaZakupa";
+import CommunalAll from "./pages/Communal/All";
 
 const App = () => {
   return (
@@ -16,6 +17,7 @@ const App = () => {
           <Route index element={<Home />} />
           <Route path="/budget" element={<BudgetUI />} />
           <Route path="/communal" element={<Communal />} />
+          <Route path="/communal/all" element={<CommunalAll />} />
           <Route path="/products" element={<Products />} />
           <Route path="/prochee" element={<Prochee />} />
           <Route path="/formirovaniyaZakupa" element={<FormirovaniyaZakupa />} />
