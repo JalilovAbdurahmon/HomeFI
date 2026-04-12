@@ -77,8 +77,6 @@ const Communal = () => {
     },
   };
 
- 
-
   const recentReceipts = [
     { id: 1, service: "Электроэнергия", date: "02.04.2026", amount: "80,000" },
     { id: 2, service: "Газ", date: "28.03.2026", amount: "60,000" },
@@ -118,19 +116,36 @@ const Communal = () => {
     mutation.mutate(data);
   };
 
-  
-  const filterElektr = data?.filter((Elektr) => Elektr.title == "Электроэнергия").at(-1)
-  const filterIssiqSuv = data?.filter((IssiqSuv) => IssiqSuv.title == "Горячая вода").at(-1)
-  const filterSovuqSuv = data?.filter((SovuqSuv) => SovuqSuv.title == "Холодная вода").at(-1)
-  const filterGaz = data?.filter((Gaz) => Gaz.title == "Газ").at(-1)
-  const filterMusor = data?.filter((Musor) => Musor.title == "Мусор").at(-1)
-  const filterKomOplata = data?.filter((KomOplata) => KomOplata.title == "Коммунальный налог").at(-1)
-  const filterZemelniyNalog = data?.filter((ZemelniyNalog) => ZemelniyNalog.title == "Земельный налог").at(-1)
-  const filterNalogImushestvo = data?.filter((NalogImushestvo) => NalogImushestvo.title == "Налог на имущество").at(-1)
-  const filterElektroZaryad = data?.filter((ElektroZaryad) => ElektroZaryad.title == "Электро-зарядка").at(-1)
+  const filterElektr = data
+    ?.filter((Elektr) => Elektr.title == "Электроэнергия")
+    .at(-1);
+  const filterIssiqSuv = data
+    ?.filter((IssiqSuv) => IssiqSuv.title == "Горячая вода")
+    .at(-1);
+  const filterSovuqSuv = data
+    ?.filter((SovuqSuv) => SovuqSuv.title == "Холодная вода")
+    .at(-1);
+  const filterGaz = data?.filter((Gaz) => Gaz.title == "Газ").at(-1);
+  const filterMusor = data?.filter((Musor) => Musor.title == "Мусор").at(-1);
+  const filterKomOplata = data
+    ?.filter((KomOplata) => KomOplata.title == "Коммунальный налог")
+    .at(-1);
+  const filterZemelniyNalog = data
+    ?.filter((ZemelniyNalog) => ZemelniyNalog.title == "Земельный налог")
+    .at(-1);
+  const filterNalogImushestvo = data
+    ?.filter((NalogImushestvo) => NalogImushestvo.title == "Налог на имущество")
+    .at(-1);
 
   const utilityCategories = [
-    filterElektr, filterIssiqSuv, filterSovuqSuv, filterGaz, filterMusor, filterKomOplata, filterZemelniyNalog, filterNalogImushestvo, filterElektroZaryad
+    filterElektr,
+    filterIssiqSuv,
+    filterSovuqSuv,
+    filterGaz,
+    filterMusor,
+    filterKomOplata,
+    filterZemelniyNalog,
+    filterNalogImushestvo,
   ];
 
   if (isLoading) return <h1 className="text-white text-lg">Loading ...</h1>;
@@ -261,10 +276,12 @@ const Communal = () => {
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {utilityCategories.map((cat) => {
-          const itemConfig = config[cat.name];
+          const itemConfig = config[cat?.name];
+          console.log("BACKEND:", cat?.name);
+          console.log("CONFIG KEYS:", Object.keys(config));
           return (
             <div
-              key={cat.id}
+              key={cat?.id}
               className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm hover:shadow-lg transition-all group min-h-[190px] flex flex-col justify-between"
             >
               <div className="flex items-start justify-between mb-5">
@@ -272,18 +289,18 @@ const Communal = () => {
                   <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-black/5"
                     style={{
-                      backgroundColor: itemConfig.bg,
-                      color: itemConfig.color,
+                      backgroundColor: itemConfig?.bg,
+                      color: itemConfig?.color,
                     }}
                   >
-                    {itemConfig.icon}
+                    {itemConfig?.icon}
                   </div>
                   <div className="flex flex-col leading-tight">
                     <span className="text-[10px] uppercase text-slate-400 font-semibold tracking-wider">
                       Последний платёж
                     </span>
                     <span className="text-[20px] font-extrabold text-slate-800">
-                      {cat.sumu}{" "}
+                      {cat?.sumu}{" "}
                       <small className="text-[11px] font-semibold text-slate-400">
                         сум
                       </small>
@@ -293,7 +310,7 @@ const Communal = () => {
               </div>
               <div>
                 <h3 className="font-bold text-slate-500 text-[11px] uppercase tracking-[0.2em] mb-1">
-                  {cat.title}
+                  {cat?.title}
                 </h3>
               </div>
               <div className="border-t border-slate-100 pt-4 flex items-center justify-between">
@@ -302,7 +319,7 @@ const Communal = () => {
                     Итог за год
                   </span>
                   <span className="text-[15px] font-extrabold text-slate-800">
-                    {cat.totalSum}{" "}
+                    {cat?.totalSum}{" "}
                     <small className="text-[10px] text-slate-400">сум</small>
                   </span>
                 </div>
