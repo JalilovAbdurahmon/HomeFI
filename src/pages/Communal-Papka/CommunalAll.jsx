@@ -262,6 +262,10 @@ const CommunalAll = () => {
                 className="w-full pl-14 pr-6 py-4 bg-white border border-slate-100 rounded-[22px] focus:outline-none shadow-sm font-bold text-slate-700"
               />
             </div>
+            <button className="flex items-center gap-2 px-6 py-4 bg-indigo-600 text-white rounded-[22px] font-black shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all active:scale-95 uppercase text-xs tracking-widest">
+  <Layers size={18} />
+  Выбрать по фильтру
+</button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full lg:w-auto">
