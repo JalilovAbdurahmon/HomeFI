@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Droplets,
   Flame,
@@ -9,8 +9,6 @@ import {
   Receipt,
   Landmark,
   Home,
-  Search,
-  Filter,
   X,
 } from "lucide-react";
 import { FaRightLong } from "react-icons/fa6";
@@ -68,74 +66,98 @@ const Communal = () => {
     },
   };
 
-  // 🟢 Backenddan ma'lumot olish (Pagination obyekt qaytaradi)
-  const {
-    error,
-    isLoading,
-    data: serverResponse,
-  } = useQuery({
+  // 🟢 Backenddan ma'lumot olish
+  const { isLoading, data: serverResponse } = useQuery({
     queryKey: ["getCommunal"],
     queryFn: async () => {
-      const res = await instance.get("/communal?limit=1000"); // Dashboard uchun ko'proq ma'lumot olamiz
+      const res = await instance.get("/communal?limit=1000");
       return res.data;
     },
   });
 
-  // 🟢 Massivni obyekt ichidan sug'urib olamiz
-  const actualData = serverResponse?.data || [];
+  // ✅ Ma'lumotlarni e'lon qilish
+  const actualData = useMemo(
+    () => serverResponse?.data || [],
+    [serverResponse]
+  );
 
-  const uniqueServices =
-    actualData.length > 0
-      ? Array.from(
-          new Map(
-            actualData.map((item) => [
-              item.titleCommunal?._id,
-              item.titleCommunal?.title,
-            ])
-          ).entries()
-        ).map(([_id, title]) => ({ _id, title }))
-      : [];
+  const uniqueServices = useMemo(() => {
+    if (actualData.length === 0) return [];
+    return Array.from(
+      new Map(
+        actualData.map((item) => [
+          item.titleCommunal?._id || item.titleCommunal,
+          item.titleCommunal?.title || item.titleCommunal,
+        ])
+      ).entries()
+    ).map(([_id, title]) => ({ _id, title }));
+  }, [actualData]);
 
-  const recentReceipts = actualData
-    ?.slice()
-    ?.sort((a, b) => new Date(b.dateOfPayment) - new Date(a.dateOfPayment))
-    ?.slice(0, 5);
+  const recentReceipts = useMemo(() => {
+    return actualData
+      .slice()
+      .sort((a, b) => new Date(b.dateOfPayment) - new Date(a.dateOfPayment))
+      .slice(0, 5);
+  }, [actualData]);
 
-  const utilityCategories = Object.keys(config).map((title) => {
-    const items = actualData?.filter(
-      (item) => item.titleCommunal?.title === title
+  const utilityCategories = useMemo(() => {
+    return Object.keys(config).map((title) => {
+      const items = actualData.filter(
+        (item) => (item.titleCommunal?.title || item.titleCommunal) === title
+      );
+      const sorted = items
+        .slice()
+        .sort((a, b) => new Date(b.dateOfPayment) - new Date(a.dateOfPayment));
+      const last = sorted[0];
+      const totalSum = items.reduce((acc, curr) => {
+        const year = new Date(curr.dateOfPayment).getFullYear();
+        const currentYear = new Date().getFullYear();
+        return year === currentYear ? acc + curr.sum : acc;
+      }, 0);
+
+      return {
+        title,
+        sum: last?.sum || 0,
+        totalSum: totalSum || 0,
+        lastDate: last?.dateOfPayment,
+      };
+    });
+  }, [actualData]);
+
+  const handleFilterNavigate = (typeOrId) => {
+    const found = uniqueServices.find(
+      (s) => s.title === typeOrId || s._id === typeOrId
     );
-    const sorted = items
-      ?.slice()
-      .sort((a, b) => new Date(b.dateOfPayment) - new Date(a.dateOfPayment));
-    const last = sorted?.[0];
-    const totalSum = items?.reduce((acc, curr) => {
-      const year = new Date(curr.dateOfPayment).getFullYear();
-      const currentYear = new Date().getFullYear();
-      return year === currentYear ? acc + curr.sum : acc;
-    }, 0);
-
-    return {
-      title,
-      sum: last?.sum || 0,
-      totalSum: totalSum || 0,
-      lastDate: last?.dateOfPayment,
-    };
-  });
-
-  const handleFilterNavigate = (title) => {
-    nav(`/communal/all/${encodeURIComponent(title)}`);
+  
+    if (found) {
+      nav(`/communal/all/${found._id}`, {
+        state: { category: found.title },
+      });
+    } else {
+      nav("/communal/all");
+    }
   };
 
   const mutation = useMutation({
     mutationFn: async (newdata) => {
-      const payload = { ...newdata, sum: Number(newdata.sum) };
+      // Backendga ID yuborish uchun tekshiruv
+      const service = uniqueServices.find(
+        (s) => s.title === newdata.titleCommunal
+      );
+      const payload = {
+        ...newdata,
+        titleCommunal: service?._id || newdata.titleCommunal,
+        sum: Number(newdata.sum),
+      };
       return await instance.post("/communal", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(["getCommunal"]);
       setIsModalOpen(false);
       reset();
+    },
+    onError: (err) => {
+      console.error("Xatolik yuz berdi:", err.response?.data || err.message);
     },
   });
 
@@ -185,19 +207,12 @@ const Communal = () => {
                 {...register("titleCommunal", { required: true })}
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700"
               >
-                <option value="">Выберите услуgu</option>
-                {/* Agar uniqueServices bo'sh bo'lsa, xato bermasligi uchun */}
-                {uniqueServices.length > 0
-                  ? uniqueServices.map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.title}
-                      </option>
-                    ))
-                  : Object.keys(config).map((title) => (
-                      <option key={title} value={title}>
-                        {title}
-                      </option>
-                    ))}
+                <option value="">Выберите услугу</option>
+                {Object.keys(config).map((title) => (
+                  <option key={title} value={title}>
+                    {title}
+                  </option>
+                ))}
               </select>
               <input
                 {...register("dateOfPayment", { required: true })}
@@ -241,6 +256,12 @@ const Communal = () => {
           </p>
         </div>
         <button
+          onClick={() => nav("/communal/all")}
+          className="pl-16 pr-16 py-4 ml-24 rounded-[22px] bg-indigo-600 text-white font-black uppercase text-[11px] tracking-[0.2em] hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95"
+        >
+          <span>Показать все чеки</span> <FaRightLong size={14} />
+        </button>
+        <button
           onClick={() => setIsModalOpen(true)}
           className="group relative flex items-center gap-3 bg-indigo-600 text-white px-8 py-4 rounded-[22px] font-black tracking-wide transition-all hover:bg-indigo-700 active:scale-95 shadow-xl shadow-indigo-100"
         >
@@ -263,7 +284,7 @@ const Communal = () => {
               <div className="flex items-start justify-between mb-5">
                 <div className="flex items-center gap-4">
                   <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-black/5 transform group-hover:scale-110 transition-transform"
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform"
                     style={{
                       backgroundColor: itemConfig?.bg,
                       color: itemConfig?.color,
@@ -276,10 +297,7 @@ const Communal = () => {
                       Последний платёж
                     </span>
                     <span className="text-[20px] font-extrabold text-slate-800">
-                      {cat?.sum.toLocaleString()}{" "}
-                      {/* <small className="text-[11px] font-semibold text-slate-400 uppercase">
-                        сум
-                      </small> */}
+                      {cat?.sum.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -293,7 +311,7 @@ const Communal = () => {
                     <span className="text-[10px] text-slate-300 font-semibold uppercase">
                       Итог за год
                     </span>
-                    <span className="text-[15px] text-slate-800">
+                    <span className="text-[15px] text-slate-800 font-bold">
                       {cat?.totalSum.toLocaleString()}{" "}
                       <small className="text-[10px] text-slate-400 uppercase">
                         сум
@@ -313,23 +331,24 @@ const Communal = () => {
         })}
       </div>
 
-      {/* RECENT RECEIPTS */}
+      {/* HISTORY */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
         <div className="lg:col-span-2 bg-white/80 backdrop-blur-xl rounded-[40px] shadow-sm border border-white overflow-hidden p-8">
           <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-6">
             История <span className="text-slate-300">платежей</span>
           </h3>
           <div className="space-y-3">
-            {recentReceipts?.length > 0 ? (
+            {recentReceipts.length > 0 ? (
               recentReceipts.map((receipt) => {
-                const itemStyle = config[receipt.titleCommunal?.title] || {};
+                const serviceTitle =
+                  receipt.titleCommunal?.title || receipt.titleCommunal;
+                const itemStyle = config[serviceTitle] || {};
                 return (
                   <div
                     key={receipt._id}
                     className="flex items-center justify-between p-4 rounded-[24px] bg-slate-50/50 hover:bg-white border border-transparent hover:border-slate-100 transition-all group"
                   >
                     <div className="flex items-center gap-4">
-                      {/* Ikonka razmeri kichraytirildi (w-16 -> w-12) */}
                       <div
                         className="w-12 h-12 rounded-[18px] flex items-center justify-center shadow-sm"
                         style={{
@@ -337,32 +356,33 @@ const Communal = () => {
                           color: itemStyle?.color,
                         }}
                       >
-                        {/* Lucide icon razmeri ham kichraytirildi */}
-                        {React.cloneElement(itemStyle?.icon, { size: 18 })}
+                        {itemStyle?.icon ? (
+                          React.cloneElement(itemStyle.icon, { size: 18 })
+                        ) : (
+                          <Receipt size={18} />
+                        )}
                       </div>
                       <div>
-                        {/* Sarlavha razmeri (text-lg -> text-sm) */}
                         <h4 className="font-bold text-slate-800 text-sm mb-0.5">
-                          {receipt.titleCommunal?.title}
+                          {serviceTitle}
                         </h4>
-                        {/* Sana razmeri (text-[11px] -> text-[10px]) */}
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           {formatDate(receipt.dateOfPayment)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      {/* Summa razmeri (text-xl -> text-base) */}
                       <span className="font-black text-base text-slate-900">
                         {receipt.sum.toLocaleString()}{" "}
                         <span className="text-[9px] text-slate-400 uppercase font-bold">
                           UZS
                         </span>
                       </span>
-                      {/* Tugma razmeri (w-12 -> w-9) */}
                       <button
                         onClick={() =>
-                          handleFilterNavigate(receipt.titleCommunal?.title)
+                          handleFilterNavigate(
+                            receipt.titleCommunal?._id || receipt.titleCommunal
+                          )
                         }
                         className="w-9 h-9 flex items-center justify-center bg-white text-slate-300 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm"
                       >
@@ -378,14 +398,6 @@ const Communal = () => {
               </p>
             )}
           </div>
-
-          {/* "Показать все чеки" tugmasi ham biroz ixchamlashtirildi */}
-          <button
-            onClick={() => nav("/communal/all")}
-            className="w-full mt-8 py-4 rounded-[22px] bg-indigo-600 text-white font-black uppercase text-[11px] tracking-[0.2em] hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-indigo-100 active:scale-95"
-          >
-            <span>Показать все чеki</span> <FaRightLong size={14} />
-          </button>
         </div>
 
         {/* ANALYTICS */}
@@ -405,7 +417,7 @@ const Communal = () => {
               Всего транзакций
             </p>
             <p className="text-3xl font-black">
-              {serverResponse?.totalItems || 0}
+              {serverResponse?.totalItems || actualData.length || 0}
             </p>
           </div>
         </div>
