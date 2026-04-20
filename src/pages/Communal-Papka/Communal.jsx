@@ -208,9 +208,9 @@ const Communal = () => {
                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700"
               >
                 <option value="">Выберите услугу</option>
-                {Object.keys(config).map((title) => (
-                  <option key={title} value={title}>
-                    {title}
+                {Object.keys(config).map((item) => (
+                  <option key={item._id} value={item._id}>
+                    {item}
                   </option>
                 ))}
               </select>
@@ -220,7 +220,7 @@ const Communal = () => {
                 placeholder="Дата платежа"
                 onFocus={() => setDateInputType("date")}
                 onBlur={(e) => !e.target.value && setDateInputType("text")}
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700"
+                className="w-full p-4 bg -slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700"
               />
               <input
                 {...register("sum", { required: true })}
