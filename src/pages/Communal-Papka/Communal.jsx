@@ -10,6 +10,8 @@ import {
   Landmark,
   Home,
   X,
+  ClipboardList,
+  ChevronRight,
 } from "lucide-react";
 import { FaRightLong } from "react-icons/fa6";
 import instance from "../../utils/axios";
@@ -128,7 +130,7 @@ const Communal = () => {
     const found = uniqueServices.find(
       (s) => s.title === typeOrId || s._id === typeOrId
     );
-  
+
     if (found) {
       nav(`/communal/all/${found._id}`, {
         state: { category: found.title },
@@ -256,10 +258,27 @@ const Communal = () => {
           </p>
         </div>
         <button
-          onClick={() => nav("/communal/all")}
-          className="pl-16 pr-16 py-4 ml-24 rounded-[22px] bg-indigo-600 text-white font-black uppercase text-[11px] tracking-[0.2em] hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 shadow-lg active:scale-95"
+          onClick={() => nav("/products/all")}
+          className="group flex items-center gap-3 px-8 py-2.5 bg-white border-2 border-slate-200 text-slate-700 rounded-[22px] font-black uppercase text-[11px] tracking-[0.2em] transition-all duration-300 shadow-sm hover:border-indigo-500 hover:text-indigo-600 hover:shadow-indigo-100 hover:-translate-y-0.5 active:scale-95 ml-24"
         >
-          <span>Показать все чеки</span> <FaRightLong size={14} />
+          {/* Ikonka konteyneri - Products sahifasidagi kabi */}
+          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-50 group-hover:bg-indigo-50 transition-colors duration-300">
+            <ClipboardList
+              size={16}
+              className="text-slate-400 group-hover:text-indigo-500 group-hover:scale-110 transition-all"
+            />
+          </div>
+
+          <span className="relative">
+            Все чеки
+            {/* Pastki chiziq effekti */}
+            <span className="absolute bottom-[-4px] left-0 w-0 h-[2px] bg-indigo-500 transition-all duration-300 group-hover:w-full"></span>
+          </span>
+
+          <ChevronRight
+            size={14}
+            className="ml-1 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all"
+          />
         </button>
         <button
           onClick={() => setIsModalOpen(true)}

@@ -4,8 +4,8 @@ import Layout from "./pages/Layout";
 import Home from "./pages/Home";
 import BudgetUI from "./pages/Budjet";
 import Communal from "./pages/Communal-Papka/Communal";
-import Products from "./pages/Products";
-import Prochee from "./pages/Prochee";
+import Products from "./pages/Products-Papka/Products";
+import Prochee from "./pages/Prochee-Papka/Prochee";
 import FormirovaniyaZakupa from "./pages/FormirovaniyaZakupa";
 import CommunalAll from "./pages/Communal-Papka/CommunalAll";
 
