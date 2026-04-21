@@ -8,13 +8,15 @@ import Products from "./pages/Products-Papka/Products";
 import Prochee from "./pages/Prochee-Papka/Prochee";
 import FormirovaniyaZakupa from "./pages/FormirovaniyaZakupa";
 import CommunalAll from "./pages/Communal-Papka/CommunalAll";
+import Register from "./pages/Register";
 
 const App = () => {
   return (
     <div>
       <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
+        <Route path="/" element={<Register />} />
+        <Route element={<Layout />}>
+          <Route path="/home" element={<Home />} />
           <Route path="/budget" element={<BudgetUI />} />
           <Route path="/communal" element={<Communal />} />
           <Route path="/communal/all/:type?" element={<CommunalAll />} />

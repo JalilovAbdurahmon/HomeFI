@@ -258,7 +258,7 @@ const Communal = () => {
           </p>
         </div>
         <button
-          onClick={() => nav("/products/all")}
+          onClick={() => nav("/communal/all")}
           className="group flex items-center gap-3 px-8 py-2.5 bg-white border-2 border-slate-200 text-slate-700 rounded-[22px] font-black uppercase text-[11px] tracking-[0.2em] transition-all duration-300 shadow-sm hover:border-indigo-500 hover:text-indigo-600 hover:shadow-indigo-100 hover:-translate-y-0.5 active:scale-95 ml-24"
         >
           {/* Ikonka konteyneri - Products sahifasidagi kabi */}

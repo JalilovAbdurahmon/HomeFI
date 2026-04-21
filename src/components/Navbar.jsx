@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FaBell, FaChevronDown } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const notificationCount = 4;
   const [open, setOpen] = useState(false);
   const menuRef = useRef();
+
+  const nav = useNavigate()
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -15,6 +18,11 @@ const Navbar = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token")
+    nav("/")
+  }
 
   return (
     <div className="h-[64px] flex justify-between items-center w-full px-6 bg-white/70 backdrop-blur-sm border-b border-gray-200">
@@ -77,7 +85,7 @@ const Navbar = () => {
               <li className="px-4 py-2 hover:bg-gray-50 cursor-pointer transition">
                 <span className="mr-2 text-indigo-500">⚙️</span> Settings
               </li>
-              <li className="px-4 py-2 hover:bg-red-50 text-red-500 cursor-pointer transition">
+              <li onClick={handleLogout} className="px-4 py-2 hover:bg-red-50 text-red-500 cursor-pointer transition">
                 <span className="mr-2">🚪</span> Logout
               </li>
             </ul>

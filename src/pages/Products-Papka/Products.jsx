@@ -10,7 +10,6 @@ import {
   ShoppingCart,
   ShoppingBag,
   Clock,
-  ChevronRight,
 } from "lucide-react";
 
 const Products = () => {

@@ -185,7 +185,7 @@ const CommunalAll = () => {
       }
       const res = await instance.get(url);
       return res.data;
-    },
+    }
   });
 
   // STATISTIKA (O'zingniki qoldi)
@@ -479,121 +479,6 @@ const CommunalAll = () => {
 
             {/* Asosiy konteyner: Barcha elementlarni bir qatorga tizish uchun */}
             <div className="flex flex-wrap items-center gap-4 w-full">
-              {/* 1. KATEGORIYA FILTRI (Button ko'rinishida, lekin balandligi Sana bilan bir xil) */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(!isOpen)}
-                  className="group flex items-center justify-between gap-4 px-6 h-[56px] min-w-[240px] 
-    bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#334155] 
-    text-white rounded-[22px] 
-    shadow-[0_10px_15px_-3px_rgba(15,23,42,0.3)]
-    hover:-translate-y-1.5 hover:shadow-[0_20px_25px_-5px_rgba(15,23,42,0.4)]
-    active:scale-95 transition-all duration-300 ease-out border border-white/5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">
-                      <Layers
-                        className="text-blue-400 group-hover:text-blue-300 group-hover:scale-110 transition-all"
-                        size={18}
-                      />
-                    </div>
-                    <div className="flex flex-col items-start leading-none">
-                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-[0.15em] mb-1">
-                        Категория
-                      </span>
-                      <span className="font-bold text-slate-100 text-sm tracking-wide">
-                        {selectedCategory === "all"
-                          ? "Все услуги"
-                          : selectedCategory}
-                      </span>
-                    </div>
-                  </div>
-                  <div
-                    className={`p-1 rounded-lg bg-white/5 transition-all duration-300 ${
-                      isOpen ? "bg-blue-500/20" : ""
-                    }`}
-                  >
-                    <ChevronDown
-                      className={`text-slate-400 transition-transform duration-500 ${
-                        isOpen
-                          ? "rotate-180 text-blue-400"
-                          : "group-hover:text-white"
-                      }`}
-                      size={16}
-                    />
-                  </div>
-                </button>
-
-                {isOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-20"
-                      onClick={() => setIsOpen(false)}
-                    ></div>
-                    <ul className="absolute left-0 mt-4 min-w-[280px] max-h-[400px] overflow-y-auto bg-[#0f172a] backdrop-blur-xl border border-white/10 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] z-30 animate-in fade-in zoom-in slide-in-from-top-4 duration-300 custom-scrollbar overflow-hidden">
-                      {/* ВСЕ КАТЕГОРИИ */}
-                      <li
-                        onClick={() => {
-                          setPage(1);
-                          setSelectedCategory("all");
-                          setIsOpen(false);
-                          nav("/communal/all");
-                        }}
-                        className={`sticky top-0 z-20 flex items-center justify-center gap-2 py-4 text-[11px] font-black cursor-pointer border-b border-white/5 transition-all text-white ${
-                          selectedCategory === "all"
-                            ? "bg-blue-600"
-                            : "bg-[#1e293b] hover:bg-slate-800"
-                        }`}
-                      >
-                        📊 ПОКАЗАТЬ ВСЕ КАТЕГОРИИ
-                      </li>
-
-                      <div className="p-2 space-y-1">
-  {Object.keys(config).map((cat) => (
-    <li
-      key={cat}
-      onClick={() => {
-        setPage(1);
-        setSelectedCategory(cat);
-        setIsOpen(false);
-
-        // 1. Backend ObjectId ni qidirib topish
-        // 'allStatsResponse' - bu sening hamma ma'lumotlaring keladigan joy
-        const categoryData = allStatsResponse?.data?.find(
-          (item) => (item.titleCommunal?.title || item.titleCommunal) === cat
-        );
-
-        // 2. ID ni aniqlash (obyekt ichida bo'lsa _id, bo'lmasa o'zi)
-        const categoryID = categoryData?.titleCommunal?._id || categoryData?._id;
-
-        // 3. Navigatsiya (Faqat ID bo'lsa yuboramiz, bo'lmasa 'all' ga qaytaramiz)
-        if (categoryID) {
-          nav(`/communal/all/${categoryID}`);
-        } else {
-          // Agar ID topilmasa, xato bermasligi uchun 'all' ga o'tib ketadi
-          nav("/communal/all");
-        }
-      }}
-      // SENING ESKI ZO'R STILING (Daxlsiz qoldi):
-      className={`flex items-center justify-between px-4 py-3.5 rounded-2xl font-bold text-[13px] cursor-pointer transition-all text-white ${
-        selectedCategory === cat
-          ? "bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg"
-          : "hover:bg-white/5 hover:translate-x-1"
-      }`}
-    >
-      <span className="text-white">{cat}</span>
-      {selectedCategory === cat && (
-        <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.8)]" />
-      )}
-    </li>
-  ))}
-</div>
-                    </ul>
-                  </>
-                )}
-              </div>
-
               {/* 2. SANA TANLAGICHI (Kategoriya bilan bir xil balandlikda - h-[52px]) */}
               <div className="relative">
                 <button
@@ -719,6 +604,126 @@ const CommunalAll = () => {
                   </>
                 )}
               </div>
+
+              {/* 1. KATEGORIYA FILTRI (Button ko'rinishida, lekin balandligi Sana bilan bir xil) */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="group flex items-center justify-between gap-4 px-6 h-[56px] min-w-[240px] 
+    bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#334155] 
+    text-white rounded-[22px] 
+    shadow-[0_10px_15px_-3px_rgba(15,23,42,0.3)]
+    hover:-translate-y-1.5 hover:shadow-[0_20px_25px_-5px_rgba(15,23,42,0.4)]
+    active:scale-95 transition-all duration-300 ease-out border border-white/5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">
+                      <Layers
+                        className="text-blue-400 group-hover:text-blue-300 group-hover:scale-110 transition-all"
+                        size={18}
+                      />
+                    </div>
+                    <div className="flex flex-col items-start leading-none">
+                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-[0.15em] mb-1">
+                        Категория
+                      </span>
+                      <span className="font-bold text-slate-100 text-sm tracking-wide">
+                        {selectedCategory === "all"
+                          ? "Все услуги"
+                          : selectedCategory}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className={`p-1 rounded-lg bg-white/5 transition-all duration-300 ${
+                      isOpen ? "bg-blue-500/20" : ""
+                    }`}
+                  >
+                    <ChevronDown
+                      className={`text-slate-400 transition-transform duration-500 ${
+                        isOpen
+                          ? "rotate-180 text-blue-400"
+                          : "group-hover:text-white"
+                      }`}
+                      size={16}
+                    />
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-20"
+                      onClick={() => setIsOpen(false)}
+                    ></div>
+                    <ul className="absolute left-0 mt-4 min-w-[280px] max-h-[400px] overflow-y-auto bg-[#0f172a] backdrop-blur-xl border border-white/10 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] z-30 animate-in fade-in zoom-in slide-in-from-top-4 duration-300 custom-scrollbar overflow-hidden">
+                      {/* ВСЕ КАТЕГОРИИ */}
+                      <li
+                        onClick={() => {
+                          setPage(1);
+                          setSelectedCategory("all");
+                          setIsOpen(false);
+                          nav("/communal/all");
+                        }}
+                        className={`sticky top-0 z-20 flex items-center justify-center gap-2 py-4 text-[11px] font-black cursor-pointer border-b border-white/5 transition-all text-white ${
+                          selectedCategory === "all"
+                            ? "bg-blue-600"
+                            : "bg-[#1e293b] hover:bg-slate-800"
+                        }`}
+                      >
+                        📊 ПОКАЗАТЬ ВСЕ КАТЕГОРИИ
+                      </li>
+
+                      <div className="p-2 space-y-1">
+                        {Object.keys(config).map((cat) => (
+                          <li
+                            key={cat}
+                            onClick={() => {
+                              setPage(1);
+                              setSelectedCategory(cat);
+                              setIsOpen(false);
+
+                              // 1. Backend ObjectId ni qidirib topish
+                              // 'allStatsResponse' - bu sening hamma ma'lumotlaring keladigan joy
+                              const categoryData = allStatsResponse?.data?.find(
+                                (item) =>
+                                  (item.titleCommunal?.title ||
+                                    item.titleCommunal) === cat
+                              );
+
+                              // 2. ID ni aniqlash (obyekt ichida bo'lsa _id, bo'lmasa o'zi)
+                              const categoryID =
+                                categoryData?.titleCommunal?._id ||
+                                categoryData?._id;
+
+                              // 3. Navigatsiya (Faqat ID bo'lsa yuboramiz, bo'lmasa 'all' ga qaytaramiz)
+                              if (categoryID) {
+                                nav(`/communal/all/${categoryID}`);
+                              } else {
+                                // Agar ID topilmasa, xato bermasligi uchun 'all' ga o'tib ketadi
+                                nav("/communal/all");
+                              }
+                            }}
+                            // SENING ESKI ZO'R STILING (Daxlsiz qoldi):
+                            className={`flex items-center justify-between px-4 py-3.5 rounded-2xl font-bold text-[13px] cursor-pointer transition-all text-white ${
+                              selectedCategory === cat
+                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg"
+                                : "hover:bg-white/5 hover:translate-x-1"
+                            }`}
+                          >
+                            <span className="text-white">{cat}</span>
+                            {selectedCategory === cat && (
+                              <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.8)]" />
+                            )}
+                          </li>
+                        ))}
+                      </div>
+                    </ul>
+                  </>
+                )}
+              </div>
+
             </div>
           </div>
 

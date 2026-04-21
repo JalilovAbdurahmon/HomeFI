@@ -29,7 +29,7 @@ export function SidebarWithContentSeparator() {
 
       <div className="mt-4 px-3 space-y-1">
         {/* DASHBOARD */}
-        <NavLink to="/" end className={activeClass}>
+        <NavLink to="/home" end className={activeClass}>
           <MdDashboard className="text-[#38BDF8] text-xl" />
           <span className="text-white">Панель управления</span>
         </NavLink>
