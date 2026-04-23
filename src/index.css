@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 10px; /* kattaroq */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #0b1220; /* dark track */
+    border-radius: 12px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #334155, #1e293b);
+    border-radius: 12px;
+    border: 2px solid #0b1220; /* ichidan ajralib turadi */
+    transition: all 0.3s ease;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #475569, #2563eb);
+  }
+  
+  .custom-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #334155 #0b1220;
+  }

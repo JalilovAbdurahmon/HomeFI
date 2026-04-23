@@ -2,14 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
 import instance from "../utils/axios";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
 
 const Register = () => {
   // 1. Состояние: Вход или Регистрация
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-
-  const nav = useNavigate();
 
   const {
     register,
@@ -32,6 +29,8 @@ const Register = () => {
         localStorage.setItem("token", token);
         localStorage.setItem("username", username);
 
+        console.log("AFTER LOGIN:", localStorage.getItem("token"));
+
         // Agar setToken Context'dan kelsa, ishlating, bo'lmasa o'chirib tashlang
         // setToken(token); 
 
@@ -44,7 +43,7 @@ const Register = () => {
         return; // Navigatsiya qilishdan oldin login qilsin
       }
 
-      nav("/home");
+      window.location.href= "/home"
     } catch (err) {
       console.error(err);
       // Backenddan kelayotgan xato xabarini ko'rsatish

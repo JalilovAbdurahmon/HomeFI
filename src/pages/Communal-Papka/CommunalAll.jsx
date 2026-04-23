@@ -31,9 +31,10 @@ const CommunalAll = () => {
   const nav = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState(""); // ✅ YANGI
   const [editingItem, setEditingItem] = useState(null);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10); // Default holatda 10 ta chek
+  const [limit, setLimit] = useState(10);
   const location = useLocation();
   const initialCategory = location.state?.category || "all";
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -43,10 +44,23 @@ const CommunalAll = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+  const [appliedDate, setAppliedDate] = useState({
+    start: "",
+    end: "",
+  });
 
   const titleFromState = location.state?.title;
 
   const { register, handleSubmit, reset, setValue } = useForm();
+
+  // ✅ DEBOUNCE: foydalanuvchi yozishni to'xtatgandan 500ms keyin qidiradi
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const config = {
     Электроэнергия: {
@@ -113,67 +127,57 @@ const CommunalAll = () => {
   ];
 
   useEffect(() => {
-    setPage(1); // Sahifani 1-ga qaytarish
-
-    // BU YERGA MA'LUMOTNI QAYTA CHAQIRISHNI QO'SHAMIZ:
-    // Agar senda ma'lumotni chaqiradigan funksiya bo'lsa, o'shani chaqir.
-    // Masalan:
+    setPage(1);
     if (type) {
-      // fetchData(type); // yoki dispatch(yourAction(type))
       console.log("ID o'zgardi, yangi ma'lumot chaqirilyapti:", type);
     }
-  }, [type]); // 'type' o'zgarganda bu yer ishlaydi
+  }, [type]);
 
-  const { data: serverResponse, isLoading } = useQuery({
-    // queryKey ichiga startDate va endDate qo'shildi.
-    // Ular o'zgarganda React Query avtomat serverga yangi so'rov yuboradi.
+  const {
+    data: serverResponse,
+    isLoading,
+    refetch,
+  } = useQuery({
+    // ✅ searchTerm o'rniga debouncedSearch ishlatiladi
     queryKey: [
       "getCommunal",
       page,
       limit,
       decodedType,
-      searchTerm,
-      startDate,
-      endDate,
+      debouncedSearch,
+      appliedDate.start,
+      appliedDate.end,
     ],
     queryFn: async () => {
-      // 1. Asosiy parametrlar
       const params = {
-        page: page,
-        limit: limit,
-        search: searchTerm || undefined,
+        page,
+        limit,
+        search: debouncedSearch || undefined,
       };
 
-      // 2. KATEGORIYA FILTRI: Agar kategoriya tanlangan bo'lsa ID yuboramiz
       if (decodedType && decodedType !== "all") {
         params.titleCommunal = decodedType;
       }
 
-      // 3. SANA FILTRI: Agar sanalar tanlangan bo'lsa parametrlarga qo'shamiz
-      if (startDate) {
-        params.from = startDate; // Backend'dagi parametr nomi 'from' bo'lsa
-      }
-      if (endDate) {
-        params.to = endDate; // Backend'dagi parametr nomi 'to' bo'lsa
+      if (appliedDate.start) {
+        params.from = appliedDate.start;
       }
 
-      // 4. API so'rovi
+      if (appliedDate.end) {
+        params.to = appliedDate.end;
+      }
+
       const res = await instance.get("/communal", { params });
       return res.data;
     },
-    // Ma'lumot almashayotgan paytda eski ma'lumotni o'chirib, yangisini yuklaydi
-    keepPreviousData: false,
+    keepPreviousData: true, // ✅ true — yozayotganda eski ma'lumot ko'rinib turadi
   });
 
-  // 🛠 2. FILTER BOSILGANDA PAGE-NI 1 GA QAYTARISH
-  // Buni Dropdown ichidagi onClick-ga qo'shib qo'ying
   const handleCategoryChange = (catId) => {
-    setPage(1); // Filtr o'zgarganda doim 1-sahifaga qaytish shart!
+    setPage(1);
     nav(`/communal/all/${catId}`);
   };
 
-  // 🛠 3. JADVALGA BERILADIGAN DATA
-  // Endi filteredData kerak emas, to'g'ridan-to'g'ri serverResponse.data ni ishlating
   const displayData = serverResponse?.data || [];
 
   const { data: allStatsResponse } = useQuery({
@@ -185,10 +189,9 @@ const CommunalAll = () => {
       }
       const res = await instance.get(url);
       return res.data;
-    }
+    },
   });
 
-  // STATISTIKA (O'zingniki qoldi)
   const stats = React.useMemo(() => {
     const allItems = allStatsResponse?.data || [];
     if (allItems.length === 0)
@@ -356,7 +359,6 @@ const CommunalAll = () => {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-12 font-sans text-slate-900">
-      {/* 🛠 MODAL EDIT (O'zingniki qoldi) */}
       {editingItem && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
           <div
@@ -463,90 +465,113 @@ const CommunalAll = () => {
               {currentTitle}
             </h1>
 
-            <div className="relative flex-1">
-              <Search
-                className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"
-                size={18}
-              />
-              <input
-                type="text"
-                placeholder="Поиск..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-[22px] focus:outline-none shadow-sm font-bold text-slate-700"
-              />
-            </div>
-
-            {/* Asosiy konteyner: Barcha elementlarni bir qatorga tizish uchun */}
             <div className="flex flex-wrap items-center gap-4 w-full">
-              {/* 2. SANA TANLAGICHI (Kategoriya bilan bir xil balandlikda - h-[52px]) */}
               <div className="relative">
+                {/* BUTTON */}
                 <button
                   type="button"
                   onClick={() => setIsDateModalOpen(true)}
-                  className="flex items-center gap-3 px-6 h-[52px] min-w-[220px]
-      bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-[22px] 
-      font-bold shadow-lg shadow-orange-500/20 hover:brightness-110 
-      transition-all duration-300 active:scale-95 text-[11px] uppercase tracking-widest"
+                  className="group relative flex items-center gap-3 px-6 h-[52px] min-w-[220px]
+bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#ec4899]
+text-white rounded-[20px]
+font-bold shadow-md shadow-[#8b5cf6]/20
+transition-all duration-300
+hover:-translate-y-1 hover:shadow-lg hover:shadow-[#8b5cf6]/40
+active:scale-95 overflow-hidden"
                 >
-                  <div className="flex items-center justify-center w-7 h-7 rounded-full bg-white/20">
-                    <Calendar size={14} />
+                  {/* glow effect */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-all duration-500 bg-white blur-2xl"></div>
+
+                  {/* icon */}
+                  <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-white/15 group-hover:bg-white/25 transition-all">
+                    <Calendar size={15} />
                   </div>
-                  <span>
-                    {startDate && endDate
-                      ? `${startDate} - ${endDate}`
+
+                  {/* text */}
+                  <span className="relative text-[11px] uppercase tracking-widest">
+                    {startDate || endDate
+                      ? startDate && endDate
+                        ? `${startDate} - ${endDate}`
+                        : `${startDate || endDate}`
                       : "Выбрать дату"}
                   </span>
                 </button>
 
-                {/* Sana Modali (O'zgarishsiz) */}
+                {/* MODAL — HECH O‘ZGARMADI */}
                 {isDateModalOpen && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* backdrop */}
                     <div
-                      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+                      className="fixed inset-0 bg-[#0f172a]/60 backdrop-blur-md"
                       onClick={() => setIsDateModalOpen(false)}
-                    ></div>
+                    />
+
+                    {/* modal box */}
                     <div
-                      className="relative bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl animate-in zoom-in duration-300"
+                      className="relative w-full max-w-md bg-white rounded-[28px] p-8 shadow-2xl"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-3">
-                        <Calendar className="text-orange-500" /> Выберите
-                        диапазон
+                      <h3 className="text-lg font-black text-[#0f172a] mb-6 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center">
+                          <Calendar className="text-orange-500" size={16} />
+                        </div>
+                        Выберите диапазон
                       </h3>
+
+                      {/* inputs */}
                       <div className="space-y-4">
                         <input
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none"
+                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0]
+          rounded-2xl outline-none focus:border-orange-400 transition-all"
                         />
+
                         <input
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none"
+                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0]
+          rounded-2xl outline-none focus:border-orange-400 transition-all"
                         />
                       </div>
+
+                      {/* buttons */}
                       <div className="flex gap-3 mt-8">
                         <button
                           type="button"
                           onClick={() => {
                             setStartDate("");
                             setEndDate("");
-                            setIsDateModalOpen(false);
-                          }}
-                          className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-100 rounded-2xl"
-                        >
-                          Tozalash
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
+                            setAppliedDate({ start: "", end: "" });
                             setPage(1);
                             setIsDateModalOpen(false);
                           }}
-                          className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-2xl font-bold shadow-lg shadow-orange-200"
+                          className="flex-1 py-3 rounded-2xl font-bold text-[#64748b]
+          bg-[#f1f5f9] hover:bg-[#e2e8f0] transition-all"
+                        >
+                          Tozalash
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            let from = startDate;
+                            let to = endDate;
+
+                            if (from && !to) to = from;
+                            if (!from && to) from = to;
+
+                            setAppliedDate({ start: from, end: to });
+
+                            setPage(1);
+                            setIsDateModalOpen(false);
+                          }}
+                          className="flex-1 py-3 rounded-2xl font-bold text-white
+          bg-gradient-to-r from-[#f97316] to-[#ef4444]
+          shadow-md hover:shadow-lg hover:brightness-110
+          transition-all active:scale-95"
                         >
                           Применить
                         </button>
@@ -556,23 +581,28 @@ const CommunalAll = () => {
                 )}
               </div>
 
-              {/* 3. SKACHAT OTCHET (Emerald rangda, biroz kichikroq) */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setOpen(!open)}
-                  className="flex items-center gap-2 px-4 h-[42px] 
-      bg-[#10b981] text-white rounded-full 
-      shadow-[0_8px_20px_-6px_rgba(16,185,129,0.5)]
-      hover:bg-[#059669] transition-all duration-300 active:scale-95 
-      font-bold text-[10px] tracking-wider uppercase"
+                  className="group relative flex items-center gap-2 px-4 h-[42px]
+bg-gradient-to-r from-[#10b981] via-[#22c55e] to-[#16a34a]
+text-[#ffffff] rounded-full
+shadow-md shadow-[rgba(16,185,129,0.25)]
+transition-all duration-300
+hover:-translate-y-1
+hover:shadow-lg hover:shadow-[rgba(16,185,129,0.45)]
+active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 >
-                  <FileText size={14} />
+                  <FileText
+                    size={14}
+                    className="transition-transform group-hover:scale-110"
+                  />
                   <span>{selected ? selected.label : "ОТЧЁТ"}</span>
                   <ChevronDown
                     size={14}
-                    className={`opacity-70 transition-transform ${
-                      open ? "rotate-180" : ""
+                    className={`opacity-80 transition-all duration-300 ${
+                      open ? "rotate-180" : "group-hover:opacity-100"
                     }`}
                   />
                 </button>
@@ -605,45 +635,57 @@ const CommunalAll = () => {
                 )}
               </div>
 
-              {/* 1. KATEGORIYA FILTRI (Button ko'rinishida, lekin balandligi Sana bilan bir xil) */}
               <div className="relative">
+                {/* BUTTON */}
                 <button
                   type="button"
                   onClick={() => setIsOpen(!isOpen)}
-                  className="group flex items-center justify-between gap-4 px-6 h-[56px] min-w-[240px] 
-    bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#334155] 
-    text-white rounded-[22px] 
-    shadow-[0_10px_15px_-3px_rgba(15,23,42,0.3)]
-    hover:-translate-y-1.5 hover:shadow-[0_20px_25px_-5px_rgba(15,23,42,0.4)]
-    active:scale-95 transition-all duration-300 ease-out border border-white/5"
+                  className="group flex items-center justify-between gap-4 px-6 h-[56px] min-w-[240px]
+    bg-gradient-to-r from-[#0b1220] via-[#111c33] to-[#0f172a]
+    text-white rounded-[22px]
+    border border-[#1f2a44]
+    shadow-[0_10px_25px_-10px_rgba(0,0,0,0.6)]
+    hover:-translate-y-1 hover:shadow-[0_25px_40px_-15px_rgba(0,0,0,0.7)]
+    active:scale-95 transition-all duration-300 overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 group-hover:bg-blue-500/20 transition-colors">
+                  {/* glow */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-all duration-500 bg-[#3b82f6] blur-2xl"></div>
+
+                  {/* LEFT */}
+                  <div className="flex items-center gap-3 relative">
+                    <div
+                      className="flex items-center justify-center w-9 h-9 rounded-xl
+      bg-[#1e293b] border border-[#2a3a5a]
+      group-hover:bg-[#24324f] transition-all"
+                    >
                       <Layers
-                        className="text-blue-400 group-hover:text-blue-300 group-hover:scale-110 transition-all"
+                        className="text-[#60a5fa] group-hover:scale-110 transition-all"
                         size={18}
                       />
                     </div>
+
                     <div className="flex flex-col items-start leading-none">
-                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-[0.15em] mb-1">
+                      <span className="text-[10px] text-[#94a3b8] font-medium uppercase tracking-[0.15em] mb-1">
                         Категория
                       </span>
-                      <span className="font-bold text-slate-100 text-sm tracking-wide">
+
+                      <span className="font-bold text-[#e2e8f0] text-sm tracking-wide">
                         {selectedCategory === "all"
                           ? "Все услуги"
                           : selectedCategory}
                       </span>
                     </div>
                   </div>
+
+                  {/* ARROW */}
                   <div
-                    className={`p-1 rounded-lg bg-white/5 transition-all duration-300 ${
-                      isOpen ? "bg-blue-500/20" : ""
-                    }`}
+                    className={`p-1 rounded-lg transition-all duration-300
+      ${isOpen ? "bg-[#1d4ed8]/20" : "bg-[#1e293b]"}`}
                   >
                     <ChevronDown
-                      className={`text-slate-400 transition-transform duration-500 ${
+                      className={`text-[#94a3b8] transition-transform duration-500 ${
                         isOpen
-                          ? "rotate-180 text-blue-400"
+                          ? "rotate-180 text-[#60a5fa]"
                           : "group-hover:text-white"
                       }`}
                       size={16}
@@ -651,83 +693,85 @@ const CommunalAll = () => {
                   </div>
                 </button>
 
+                {/* DROPDOWN */}
                 {isOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-20"
-                      onClick={() => setIsOpen(false)}
-                    ></div>
-                    <ul className="absolute left-0 mt-4 min-w-[280px] max-h-[400px] overflow-y-auto bg-[#0f172a] backdrop-blur-xl border border-white/10 rounded-[28px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] z-30 animate-in fade-in zoom-in slide-in-from-top-4 duration-300 custom-scrollbar overflow-hidden">
-                      {/* ВСЕ КАТЕГОРИИ */}
-                      <li
+                  <div
+                    className="absolute left-0 mt-3 w-[260px]
+    bg-[#0b1220]/95 backdrop-blur-xl
+    border border-[#1f2a44]
+    rounded-[22px]
+    shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)]
+    z-30 overflow-hidden"
+                  >
+                    {/* SCROLL AREA */}
+                    <div className="max-h-[260px] overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                      {/* ALL CATEGORY */}
+                      <div
                         onClick={() => {
                           setPage(1);
                           setSelectedCategory("all");
                           setIsOpen(false);
                           nav("/communal/all");
                         }}
-                        className={`sticky top-0 z-20 flex items-center justify-center gap-2 py-4 text-[11px] font-black cursor-pointer border-b border-white/5 transition-all text-white ${
-                          selectedCategory === "all"
-                            ? "bg-blue-600"
-                            : "bg-[#1e293b] hover:bg-slate-800"
-                        }`}
+                        className={`px-4 py-3 rounded-xl cursor-pointer
+          font-semibold text-sm transition-all
+          ${
+            selectedCategory === "all"
+              ? "bg-[#1d4ed8]/25 text-[#60a5fa] shadow-inner"
+              : "text-[#e2e8f0] hover:bg-[#1e293b]"
+          }`}
                       >
-                        📊 ПОКАЗАТЬ ВСЕ КАТЕГОРИИ
-                      </li>
-
-                      <div className="p-2 space-y-1">
-                        {Object.keys(config).map((cat) => (
-                          <li
-                            key={cat}
-                            onClick={() => {
-                              setPage(1);
-                              setSelectedCategory(cat);
-                              setIsOpen(false);
-
-                              // 1. Backend ObjectId ni qidirib topish
-                              // 'allStatsResponse' - bu sening hamma ma'lumotlaring keladigan joy
-                              const categoryData = allStatsResponse?.data?.find(
-                                (item) =>
-                                  (item.titleCommunal?.title ||
-                                    item.titleCommunal) === cat
-                              );
-
-                              // 2. ID ni aniqlash (obyekt ichida bo'lsa _id, bo'lmasa o'zi)
-                              const categoryID =
-                                categoryData?.titleCommunal?._id ||
-                                categoryData?._id;
-
-                              // 3. Navigatsiya (Faqat ID bo'lsa yuboramiz, bo'lmasa 'all' ga qaytaramiz)
-                              if (categoryID) {
-                                nav(`/communal/all/${categoryID}`);
-                              } else {
-                                // Agar ID topilmasa, xato bermasligi uchun 'all' ga o'tib ketadi
-                                nav("/communal/all");
-                              }
-                            }}
-                            // SENING ESKI ZO'R STILING (Daxlsiz qoldi):
-                            className={`flex items-center justify-between px-4 py-3.5 rounded-2xl font-bold text-[13px] cursor-pointer transition-all text-white ${
-                              selectedCategory === cat
-                                ? "bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg"
-                                : "hover:bg-white/5 hover:translate-x-1"
-                            }`}
-                          >
-                            <span className="text-white">{cat}</span>
-                            {selectedCategory === cat && (
-                              <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.8)]" />
-                            )}
-                          </li>
-                        ))}
+                        📊 Показать все категории
                       </div>
-                    </ul>
-                  </>
+
+                      {/* ITEMS */}
+                      {Object.keys(config).map((cat) => (
+                        <div
+                          key={cat}
+                          onClick={() => {
+                            setPage(1);
+                            setSelectedCategory(cat);
+                            setIsOpen(false);
+
+                            const categoryData = allStatsResponse?.data?.find(
+                              (item) =>
+                                (item.titleCommunal?.title ||
+                                  item.titleCommunal) === cat
+                            );
+
+                            const categoryID =
+                              categoryData?.titleCommunal?._id ||
+                              categoryData?._id;
+
+                            if (categoryID) {
+                              nav(`/communal/all/${categoryID}`);
+                            } else {
+                              nav("/communal/all");
+                            }
+                          }}
+                          className={`px-4 py-3 rounded-xl cursor-pointer
+            font-semibold text-sm transition-all
+            ${
+              selectedCategory === cat
+                ? "bg-[#1d4ed8]/25 text-[#60a5fa] shadow-inner"
+                : "text-[#cbd5e1] hover:bg-[#1e293b]"
+            }`}
+                        >
+                          {cat}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
+                
               </div>
 
+              
             </div>
+
           </div>
 
-          {/* STATS CARDS (O'zingniki qoldi) */}
+          {/* STATS CARDS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full lg:w-auto">
             <div className="relative md:col-span-2 bg-indigo-600 p-8 px-10 rounded-[40px] shadow-2xl text-white overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:rotate-12 transition-transform">
@@ -814,7 +858,7 @@ const CommunalAll = () => {
           </div>
         </div>
 
-        {/* JADVAL (O'zingniki qoldi) */}
+        {/* JADVAL */}
         <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden mb-12">
           <table className="w-full text-left">
             <thead>
@@ -899,9 +943,7 @@ const CommunalAll = () => {
         </div>
 
         <div className="flex flex-col items-center gap-10 pb-20 mt-12">
-          {/* 1. LIMIT SELECTOR & INFO SECTION */}
           <div className="flex flex-col md:flex-row items-center gap-6 w-full justify-center">
-            {/* Limit tanlash (Sonlar) */}
             <div className="flex flex-col items-center gap-2">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">
                 Записей на странице
@@ -926,10 +968,8 @@ const CommunalAll = () => {
               </div>
             </div>
 
-            {/* Vertikal ajratgich (Faqat kompyuterda ko'rinadi) */}
             <div className="hidden md:block w-[1px] h-10 bg-slate-200 mx-2"></div>
 
-            {/* Ma'lumot ko'rsatkichi (Kapsula dizayni) */}
             <div className="flex flex-col items-center gap-2">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">
                 Общая статистика
@@ -950,10 +990,8 @@ const CommunalAll = () => {
             </div>
           </div>
 
-          {/* 2. MAIN PAGINATION CONTROLLER (SAHIFALAR) */}
           <div className="relative p-2 bg-white rounded-[32px] border border-slate-100 shadow-[0_20px_50px_-12px_rgba(79,70,229,0.12)]">
             <div className="flex items-center gap-2">
-              {/* Orqaga */}
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => p - 1)}
@@ -962,7 +1000,6 @@ const CommunalAll = () => {
                 <ArrowLeft size={20} />
               </button>
 
-              {/* Sahifa raqamlari */}
               <div className="flex items-center gap-1.5">
                 {Array.from(
                   { length: serverResponse?.totalPages || 1 },
@@ -982,7 +1019,6 @@ const CommunalAll = () => {
                 ))}
               </div>
 
-              {/* Oldinga */}
               <button
                 disabled={page >= (serverResponse?.totalPages || 1)}
                 onClick={() => setPage((p) => p + 1)}
@@ -993,7 +1029,6 @@ const CommunalAll = () => {
             </div>
           </div>
 
-          {/* 3. FOOTER TIP */}
           <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-100">
             <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></div>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
