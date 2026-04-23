@@ -194,29 +194,39 @@ const CommunalAll = () => {
 
   const stats = React.useMemo(() => {
     const allItems = allStatsResponse?.data || [];
+
     if (allItems.length === 0)
       return {
         yearlyTotal: 0,
         prevYearTotal: 0,
         yearlyChecks: 0,
+        prevYearChecks: 0,
+
         currentMonthSum: 0,
         prevMonthSum: 0,
         currentMonthChecks: 0,
         prevMonthChecks: 0,
+
         monthName: "",
         prevMonthName: "",
         year: new Date().getFullYear(),
       };
-    const allDates = allItems.map((item) =>
-      new Date(item.dateOfPayment).getTime()
-    );
+
+    const allDates = allItems
+      .map((item) => new Date(item.dateOfPayment).getTime())
+      .filter((t) => !isNaN(t));
+
     const latestDate = new Date(Math.max(...allDates));
+
     const currentMonth = latestDate.getMonth();
     const currentYear = latestDate.getFullYear();
+
     const previousYear = currentYear - 1;
+
     const prevDateObj = new Date(currentYear, currentMonth - 1, 1);
     const prevMonth = prevDateObj.getMonth();
     const prevYear = prevDateObj.getFullYear();
+
     const monthNames = [
       "Январь",
       "Февраль",
@@ -231,21 +241,30 @@ const CommunalAll = () => {
       "Ноябрь",
       "Декабрь",
     ];
+
     return allItems.reduce(
       (acc, item) => {
         const d = new Date(item.dateOfPayment);
+        if (isNaN(d.getTime())) return acc;
+
         const m = d.getMonth();
         const y = d.getFullYear();
+
         const s =
           typeof item.sum === "string"
             ? Number(item.sum.replace(/\s/g, ""))
             : Number(item.sum || 0);
+
+        // YEARLY
         if (y === currentYear) {
           acc.yearlyTotal += s;
           acc.yearlyChecks += 1;
         } else if (y === previousYear) {
           acc.prevYearTotal += s;
+          acc.prevYearChecks += 1;
         }
+
+        // MONTHLY
         if (m === currentMonth && y === currentYear) {
           acc.currentMonthSum += s;
           acc.currentMonthChecks += 1;
@@ -253,22 +272,27 @@ const CommunalAll = () => {
           acc.prevMonthSum += s;
           acc.prevMonthChecks += 1;
         }
+
         acc.year = currentYear;
         acc.monthName = monthNames[currentMonth];
         acc.prevMonthName = monthNames[prevMonth];
+
         return acc;
       },
       {
         yearlyTotal: 0,
         prevYearTotal: 0,
         yearlyChecks: 0,
+        prevYearChecks: 0,
+
         currentMonthSum: 0,
         prevMonthSum: 0,
         currentMonthChecks: 0,
         prevMonthChecks: 0,
-        monthName: monthNames[currentMonth],
-        prevMonthName: monthNames[prevMonth],
-        year: currentYear,
+
+        monthName: monthNames[new Date().getMonth()],
+        prevMonthName: monthNames[(new Date().getMonth() + 11) % 12],
+        year: new Date().getFullYear(),
       }
     );
   }, [allStatsResponse]);
@@ -412,7 +436,7 @@ const CommunalAll = () => {
                 <input
                   {...register("dateOfPayment")}
                   type="date"
-                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-[20px] outline-none font-bold text-slate-700"
+                  className="w-full p-4 bg-slate-50 border border-slate-100 rounded-[20px] outline-none font-bold text-slate-700 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                 />
               </div>
               <div className="space-y-1">
@@ -467,65 +491,63 @@ const CommunalAll = () => {
 
             <div className="flex flex-wrap items-center gap-4 w-full">
               <div className="relative">
-                {/* BUTTON */}
                 <button
                   type="button"
                   onClick={() => setIsDateModalOpen(true)}
-                  className="group relative flex items-center gap-3 px-6 h-[52px] min-w-[220px]
-bg-gradient-to-r from-[#6366f1] via-[#8b5cf6] to-[#ec4899]
-text-white rounded-[20px]
-font-bold shadow-md shadow-[#8b5cf6]/20
+                  className="group relative flex items-center gap-2 px-5 h-[44px] min-w-[190px]
+bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#1d4ed8]
+text-white rounded-[22px]
+font-bold shadow-md shadow-[#1d4ed8]/30
 transition-all duration-300
-hover:-translate-y-1 hover:shadow-lg hover:shadow-[#8b5cf6]/40
+hover:-translate-y-1 hover:shadow-lg hover:shadow-[#1d4ed8]/50
 active:scale-95 overflow-hidden"
                 >
                   {/* glow effect */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-all duration-500 bg-white blur-2xl"></div>
 
                   {/* icon */}
-                  <div className="relative flex items-center justify-center w-8 h-8 rounded-xl bg-white/15 group-hover:bg-white/25 transition-all">
-                    <Calendar size={15} />
+                  <div className="relative flex items-center justify-center w-7 h-7 rounded-xl bg-white/15 group-hover:bg-white/25 transition-all">
+                    <Calendar size={14} />
                   </div>
 
                   {/* text */}
-                  <span className="relative text-[11px] uppercase tracking-widest">
-                    {startDate || endDate
-                      ? startDate && endDate
-                        ? `${startDate} - ${endDate}`
-                        : `${startDate || endDate}`
-                      : "Выбрать дату"}
-                  </span>
+                  <div className="flex flex-col leading-tight relative">
+                    <span className="text-[10px] font-bold uppercase tracking-widest">
+                      {startDate || endDate
+                        ? startDate && endDate
+                          ? `${startDate} - ${endDate}`
+                          : `${startDate || endDate}`
+                        : "Выбрать дату"}
+                    </span>
+                  </div>
                 </button>
 
-                {/* MODAL — HECH O‘ZGARMADI */}
+                {/* MODAL — O‘ZGARMAGAN */}
                 {isDateModalOpen && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    {/* backdrop */}
                     <div
                       className="fixed inset-0 bg-[#0f172a]/60 backdrop-blur-md"
                       onClick={() => setIsDateModalOpen(false)}
                     />
 
-                    {/* modal box */}
                     <div
-                      className="relative w-full max-w-md bg-white rounded-[28px] p-8 shadow-2xl"
+                      className="relative w-full max-w-md bg-white rounded-[30px] p-8 shadow-2xl"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <h3 className="text-lg font-black text-[#0f172a] mb-6 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-orange-100 flex items-center justify-center">
-                          <Calendar className="text-orange-500" size={16} />
+                        <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center">
+                          <Calendar className="text-[#1d4ed8]" size={16} />
                         </div>
                         Выберите диапазон
                       </h3>
 
-                      {/* inputs */}
                       <div className="space-y-4">
                         <input
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
                           className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0]
-          rounded-2xl outline-none focus:border-orange-400 transition-all"
+            rounded-2xl outline-none focus:border-[#1d4ed8] transition-all [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         />
 
                         <input
@@ -533,11 +555,10 @@ active:scale-95 overflow-hidden"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
                           className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0]
-          rounded-2xl outline-none focus:border-orange-400 transition-all"
+            rounded-2xl outline-none focus:border-[#1d4ed8] transition-all [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         />
                       </div>
 
-                      {/* buttons */}
                       <div className="flex gap-3 mt-8">
                         <button
                           type="button"
@@ -549,7 +570,7 @@ active:scale-95 overflow-hidden"
                             setIsDateModalOpen(false);
                           }}
                           className="flex-1 py-3 rounded-2xl font-bold text-[#64748b]
-          bg-[#f1f5f9] hover:bg-[#e2e8f0] transition-all"
+            bg-[#f1f5f9] hover:bg-[#e2e8f0] transition-all"
                         >
                           Tozalash
                         </button>
@@ -569,9 +590,9 @@ active:scale-95 overflow-hidden"
                             setIsDateModalOpen(false);
                           }}
                           className="flex-1 py-3 rounded-2xl font-bold text-white
-          bg-gradient-to-r from-[#f97316] to-[#ef4444]
-          shadow-md hover:shadow-lg hover:brightness-110
-          transition-all active:scale-95"
+            bg-gradient-to-r from-[#1d4ed8] to-[#1e40af]
+            shadow-md hover:shadow-lg hover:brightness-110
+            transition-all active:scale-95"
                         >
                           Применить
                         </button>
@@ -585,46 +606,61 @@ active:scale-95 overflow-hidden"
                 <button
                   type="button"
                   onClick={() => setOpen(!open)}
-                  className="group relative flex items-center gap-2 px-4 h-[42px]
-bg-gradient-to-r from-[#10b981] via-[#22c55e] to-[#16a34a]
-text-[#ffffff] rounded-full
-shadow-md shadow-[rgba(16,185,129,0.25)]
+                  className="group relative flex items-center justify-between gap-3 px-5 h-[44px] min-w-[190px]
+bg-gradient-to-r from-[#10b981] via-[#22c55e] to-[#34d399]
+text-white rounded-[22px]
+shadow-md shadow-[#22c55e]/25
 transition-all duration-300
 hover:-translate-y-1
-hover:shadow-lg hover:shadow-[rgba(16,185,129,0.45)]
+hover:shadow-lg hover:shadow-[#22c55e]/40
 active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 >
-                  <FileText
-                    size={14}
-                    className="transition-transform group-hover:scale-110"
-                  />
-                  <span>{selected ? selected.label : "ОТЧЁТ"}</span>
+                  {/* glow */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-all duration-500 bg-white blur-2xl"></div>
+
+                  {/* left */}
+                  <div className="flex items-center gap-2 relative">
+                    <FileText
+                      size={14}
+                      className="text-[#d1fae5] transition-transform group-hover:scale-110"
+                    />
+
+                    <span className="text-white">
+                      {selected ? selected.label : "ОТЧЁТ"}
+                    </span>
+                  </div>
+
+                  {/* arrow */}
                   <ChevronDown
                     size={14}
-                    className={`opacity-80 transition-all duration-300 ${
-                      open ? "rotate-180" : "group-hover:opacity-100"
+                    className={`relative transition-all duration-300 text-[#eafff3] ${
+                      open ? "rotate-180 text-white" : "group-hover:text-white"
                     }`}
                   />
                 </button>
 
+                {/* DROPDOWN */}
                 {open && (
                   <>
                     <div
                       className="fixed inset-0 z-10"
                       onClick={() => setOpen(false)}
                     ></div>
-                    <div className="absolute left-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-2xl z-20 overflow-hidden animate-in fade-in slide-in-from-top-1">
-                      <div className="p-1">
+
+                    <div className="absolute left-0 mt-2 w-[190px] bg-[#ecfdf5] border border-[#a7f3d0] rounded-[18px] shadow-2xl z-20 overflow-hidden">
+                      <div className="max-h-[180px] overflow-y-auto custom-scrollbar p-1 space-y-1">
                         {options.map((opt) => (
                           <div
                             key={opt.value}
                             onClick={() => handleSelect(opt)}
-                            className="flex items-center gap-3 px-4 py-2.5 cursor-pointer rounded-xl hover:bg-emerald-50 transition-all group"
+                            className="flex items-center gap-3 px-4 py-2.5 cursor-pointer rounded-xl
+              text-[#065f46] hover:bg-[#d1fae5] transition-all group"
                           >
                             <span className="text-base group-hover:scale-110 transition-transform">
                               {opt.icon}
                             </span>
-                            <span className="font-semibold text-[12px] text-slate-700 group-hover:text-[#10b981]">
+
+                            <span className="font-semibold text-[12px] group-hover:text-[#047857]">
                               {opt.label}
                             </span>
                           </div>
@@ -640,36 +676,33 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 <button
                   type="button"
                   onClick={() => setIsOpen(!isOpen)}
-                  className="group flex items-center justify-between gap-4 px-6 h-[56px] min-w-[240px]
-    bg-gradient-to-r from-[#0b1220] via-[#111c33] to-[#0f172a]
+                  className="group flex items-center justify-between gap-4 px-5 h-[48px] min-w-[290px]
+    bg-gradient-to-r from-[#334155] via-[#3b3b98] to-[#4338ca]
     text-white rounded-[22px]
-    border border-[#1f2a44]
-    shadow-[0_10px_25px_-10px_rgba(0,0,0,0.6)]
-    hover:-translate-y-1 hover:shadow-[0_25px_40px_-15px_rgba(0,0,0,0.7)]
+    border border-[#475569]
+    shadow-[0_10px_25px_-15px_rgba(67,56,202,0.4)]
+    hover:-translate-y-1 hover:shadow-[0_25px_45px_-15px_rgba(67,56,202,0.5)]
     active:scale-95 transition-all duration-300 overflow-hidden"
                 >
                   {/* glow */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-all duration-500 bg-[#3b82f6] blur-2xl"></div>
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-15 transition-all duration-500 bg-white blur-2xl"></div>
 
                   {/* LEFT */}
                   <div className="flex items-center gap-3 relative">
                     <div
-                      className="flex items-center justify-center w-9 h-9 rounded-xl
-      bg-[#1e293b] border border-[#2a3a5a]
-      group-hover:bg-[#24324f] transition-all"
+                      className="flex items-center justify-center w-8 h-8 rounded-xl
+        bg-white/10 border border-white/20
+        group-hover:bg-white/20 transition-all"
                     >
-                      <Layers
-                        className="text-[#60a5fa] group-hover:scale-110 transition-all"
-                        size={18}
-                      />
+                      <Layers className="text-white" size={16} />
                     </div>
 
                     <div className="flex flex-col items-start leading-none">
-                      <span className="text-[10px] text-[#94a3b8] font-medium uppercase tracking-[0.15em] mb-1">
+                      <span className="text-[9px] text-white/60 font-medium uppercase tracking-[0.18em] mb-1">
                         Категория
                       </span>
 
-                      <span className="font-bold text-[#e2e8f0] text-sm tracking-wide">
+                      <span className="font-bold text-white text-sm tracking-wide">
                         {selectedCategory === "all"
                           ? "Все услуги"
                           : selectedCategory}
@@ -679,16 +712,14 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
 
                   {/* ARROW */}
                   <div
-                    className={`p-1 rounded-lg transition-all duration-300
-      ${isOpen ? "bg-[#1d4ed8]/20" : "bg-[#1e293b]"}`}
+                    className={`p-1.5 rounded-lg transition-all duration-300
+      ${isOpen ? "bg-white/20" : "bg-white/10"}`}
                   >
                     <ChevronDown
-                      className={`text-[#94a3b8] transition-transform duration-500 ${
-                        isOpen
-                          ? "rotate-180 text-[#60a5fa]"
-                          : "group-hover:text-white"
+                      className={`text-white transition-transform duration-500 ${
+                        isOpen ? "rotate-180" : ""
                       }`}
-                      size={16}
+                      size={15}
                     />
                   </div>
                 </button>
@@ -696,16 +727,16 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 {/* DROPDOWN */}
                 {isOpen && (
                   <div
-                    className="absolute left-0 mt-3 w-[260px]
-    bg-[#0b1220]/95 backdrop-blur-xl
-    border border-[#1f2a44]
-    rounded-[22px]
-    shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7)]
-    z-30 overflow-hidden"
+                    className="absolute left-0 mt-3 w-[290px]
+      bg-[#1e293b]/95 backdrop-blur-xl
+      border border-[#334155]
+      rounded-[18px]
+      shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]
+      z-30 overflow-hidden"
                   >
-                    {/* SCROLL AREA */}
-                    <div className="max-h-[260px] overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                      {/* ALL CATEGORY */}
+                    {/* SCROLL */}
+                    <div className="max-h-[220px] overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                      {/* ALL */}
                       <div
                         onClick={() => {
                           setPage(1);
@@ -717,8 +748,8 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
           font-semibold text-sm transition-all
           ${
             selectedCategory === "all"
-              ? "bg-[#1d4ed8]/25 text-[#60a5fa] shadow-inner"
-              : "text-[#e2e8f0] hover:bg-[#1e293b]"
+              ? "bg-[#6366f1]/25 text-[#a5b4fc]"
+              : "text-[#e2e8f0] hover:bg-[#334155]"
           }`}
                       >
                         📊 Показать все категории
@@ -753,8 +784,8 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
             font-semibold text-sm transition-all
             ${
               selectedCategory === cat
-                ? "bg-[#1d4ed8]/25 text-[#60a5fa] shadow-inner"
-                : "text-[#cbd5e1] hover:bg-[#1e293b]"
+                ? "bg-[#6366f1]/25 text-[#a5b4fc]"
+                : "text-[#cbd5e1] hover:bg-[#334155]"
             }`}
                         >
                           {cat}
@@ -763,12 +794,8 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                     </div>
                   </div>
                 )}
-                
               </div>
-
-              
             </div>
-
           </div>
 
           {/* STATS CARDS */}
@@ -800,14 +827,39 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                     </p>
                   </div>
                 </div>
-                <div className="pt-4 border-t border-indigo-400/30 flex justify-between items-center">
-                  <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">
-                    За {stats.year - 1} год было:
-                  </p>
-                  <p className="text-lg font-black text-white/90">
-                    {stats.prevYearTotal.toLocaleString()}{" "}
-                    <span className="text-[10px]">UZS</span>
-                  </p>
+                <div
+                  className="pt-4 border-t border-indigo-400/30 space-y-1
+                "
+                >
+                  {/* TOP ROW: Year Text and Total Sum */}
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">
+                      За {new Date().getFullYear() - 1} год было:
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-xl font-black text-white/90">
+                        {(stats.prevYearTotal || 0).toLocaleString()}
+                      </span>
+                      <span className="text-[10px] font-bold text-white/60 uppercase">
+                        UZS
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* BOTTOM ROW: Checks Label and Count */}
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">
+                      За {new Date().getFullYear() - 1} год чеков:
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-extrabold text-white/90">
+                        {stats.prevYearChecks ?? 0}
+                      </span>
+                      <span className="text-[10px] font-bold text-white/60 uppercase">
+                        шт
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -816,19 +868,20 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 <Receipt size={22} />
               </div>
               <div className="w-full">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-[10px] font-black text-[#475569] uppercase tracking-widest">
                   Расход за {stats.monthName}
                 </p>
-                <p className="text-xl font-black text-slate-800">
+                <p className="text-lg font-black text-indigo-500">
                   {stats.currentMonthSum.toLocaleString()}{" "}
-                  <span className="text-[10px] text-slate-400">UZS</span>
+                  <span className="text-[10px] text-[#475569]">UZS</span>
                 </p>
                 <div className="mt-2 text-right border-t border-slate-50 pt-1">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase">
+                  <span className="text-[9px] text-[#475569] font-bold uppercase">
                     {stats.prevMonthName}:{" "}
                   </span>
-                  <span className="text-[10px] font-black text-indigo-500">
+                  <span className="text-[12px] font-black text-indigo-500">
                     {stats.prevMonthSum.toLocaleString()}
+                    <span className="text-[10px] text-[#475569] ml-1">UZS</span>
                   </span>
                 </div>
               </div>
@@ -838,18 +891,17 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 <Layers size={22} />
               </div>
               <div className="w-full">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-[10px] font-black text-[#475569] uppercase tracking-widest">
                   Чеков за {stats.monthName}
                 </p>
-                <p className="text-xl font-black text-slate-800">
-                  {stats.currentMonthChecks}{" "}
-                  <span className="text-amber-500 text-[10px]">шт</span>
+                <p className="text-lg font-black text-amber-500">
+                  {stats.currentMonthChecks} шт
                 </p>
                 <div className="mt-2 text-right border-t border-slate-50 pt-1">
-                  <span className="text-[9px] text-slate-400 font-bold uppercase">
+                  <span className="text-[9px] text-[#475569] font-bold uppercase">
                     {stats.prevMonthName}:{" "}
                   </span>
-                  <span className="text-[10px] font-black text-amber-600">
+                  <span className="text-[12px] font-black text-amber-600">
                     {stats.prevMonthChecks} шт
                   </span>
                 </div>
