@@ -1,29 +1,32 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
-  Search,
   ArrowLeft,
   FileText,
   Zap,
-  Droplets,
-  Waves,
   Flame,
   Trash2,
-  Receipt,
   Landmark,
-  Home,
   Edit3,
   X,
   Layers,
-  Wallet,
   ChevronDown,
   Calendar,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  FilterX,
+  RefreshCcw,
+  FileCheck2,
+  Square,
+  Shapes,
 } from "lucide-react";
 import { exportToExcel, exportToPDF } from "../../utils/exportHelpers";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import instance from "../../utils/axios";
-import { FaFileExcel } from "react-icons/fa6";
+import { FaFaucet, FaFileExcel } from "react-icons/fa6";
+import { toast } from "react-toastify";
 
 const CommunalAll = () => {
   const { type } = useParams();
@@ -64,52 +67,37 @@ const CommunalAll = () => {
 
   const config = {
     Электроэнергия: {
-      id: "Электроэнергия",
-      icon: <Zap size={20} />,
-      color: "#FBBF24",
+      icon: <Zap size={22} />, // 💡 Lampochka iconi
+      color: "#FBBF24", // Yorqin sariq
       bg: "#FEF3C7",
     },
     "Горячая вода": {
-      id: "Горячая вода",
-      icon: <Droplets size={20} />,
-      color: "#F97316",
-      bg: "#FFEDD5",
+      // 🔥 Aynan rakvina smistiteli
+      icon: <FaFaucet size={20} />,
+      color: "#EF4444", // Issiq suv - qizil
+      bg: "#FEE2E2",
     },
     "Холодная вода": {
-      id: "Холодная вода",
-      icon: <Waves size={20} />,
+      icon: <FaFaucet size={20} />,
       color: "#3B82F6",
       bg: "#DBEAFE",
     },
-    Газ: {
-      id: "Газ",
-      icon: <Flame size={20} />,
-      color: "#F43F5E",
-      bg: "#FFE4E6",
-    },
-    Мусор: {
-      id: "Мусор",
-      icon: <Trash2 size={20} />,
-      color: "#10B981",
-      bg: "#D1FAE5",
-    },
+    Газ: { icon: <Flame size={20} />, color: "#F43F5E", bg: "#FFE4E6" },
+    Мусор: { icon: <Trash2 size={20} />, color: "#10B981", bg: "#D1FAE5" },
     "Коммунальный налог": {
-      id: "Коммунальный налог",
-      icon: <Receipt size={20} />,
+      icon: <FileCheck2 size={22} />, // Bank yoki bino (rasmiy soliq)
       color: "#6366F1",
       bg: "#E0E7FF",
     },
-    "Земельный налог": {
-      id: "Земельный налог",
-      icon: <Landmark size={20} />,
-      color: "#64748B",
-      bg: "#F1F5F9",
+    "Земельный налог + Налог на имущество": {
+      icon: <Landmark size={20} />, // Ko'chmas mulk (Bino)
+      color: "#6366F1",
+      bg: "#E0E7FF",
     },
-    "Налог на имущество": {
-      id: "Налог на имущество",
-      icon: <Home size={20} />,
-      color: "#8B5CF6",
-      bg: "#EDE9FE",
+    Прочие: {
+      icon: <Shapes size={22} />, // Yer, o'simlik, yashil maydon
+      color: "#16A34A", // To'q yashil
+      bg: "#DCFCE7",
     },
   };
 
@@ -310,17 +298,23 @@ const CommunalAll = () => {
     return foundItem?.titleCommunal?.title || decodedType;
   }, [decodedType, serverResponse]);
 
-  const handleSelect = (opt) => {
-    const dataToExpert = serverResponse?.data || [];
-    setSelected(opt);
+  const handleSelect = async (opt) => {
+    const dataToExpert = allStatsResponse?.data || [];
+
     setOpen(false);
 
+    // ✅ appliedDate - sening sanalaring saqlangan state
+    const currentFilter = {
+      from: appliedDate.start,
+      to: appliedDate.end,
+    };
+
     if (opt.value === "excel") {
-      exportToExcel(dataToExpert);
+      exportToExcel(dataToExpert, currentFilter);
     }
 
     if (opt.value === "pdf") {
-      exportToPDF(dataToExpert);
+      exportToPDF(dataToExpert, currentFilter);
     }
   };
 
@@ -336,6 +330,25 @@ const CommunalAll = () => {
       return await instance.put(`/communal/${id}`, finalPayload);
     },
     onSuccess: () => {
+      toast.success(
+        ({ closeToast }) => (
+          <div className="flex items-center gap-3">
+            <div className="bg-[#10b981] p-2 rounded-xl shadow-lg shadow-[#a7f3d0]">
+              <CheckCircle size={20} className="text-white" />
+            </div>
+            <div>
+              <p className="text-gray-800 font-bold text-[13px]">Обновлено!</p>
+              <p className="text-gray-500 text-[11px]">
+                Данные успешно сохранены
+              </p>
+            </div>
+          </div>
+        ),
+        {
+          icon: false, // Standart ikonkani o'chiramiz
+          className: "rounded-2xl border-none shadow-2xl", // Borderlarni butunlay yo'qotamiz
+        }
+      );
       queryClient.invalidateQueries(["getCommunal"]);
       setEditingItem(null);
       reset();
@@ -348,10 +361,33 @@ const CommunalAll = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      if (window.confirm("Вы уверены?"))
-        return await instance.delete(`/communal/${id}`);
+      return await instance.delete(`/communal/${id}`);
     },
     onSuccess: () => {
+      // 🎉 O'chirish uchun maxsus chiroyli toast
+      toast.success(
+        ({ closeToast }) => (
+          <div className="flex items-center gap-3 py-1">
+            {/* Qizil rangli ikonka bloki */}
+            <div className="bg-[#f43f5e] p-2 rounded-xl shadow-lg shadow-[#fecdd3]">
+              <Trash2 size={20} className="text-white" />
+            </div>
+
+            <div className="flex flex-col">
+              <p className="text-gray-800 font-extrabold text-[13px] leading-tight uppercase">
+                Удалено!
+              </p>
+              <p className="text-gray-500 text-[11px] mt-0.5 font-medium">
+                Данные были успешно удалены
+              </p>
+            </div>
+          </div>
+        ),
+        {
+          icon: false,
+          className: "rounded-2xl border-none shadow-2xl bg-white",
+        }
+      );
       queryClient.invalidateQueries(["getCommunal"]);
       queryClient.invalidateQueries(["getCommunalAllStats"]);
     },
@@ -365,6 +401,222 @@ const CommunalAll = () => {
     setValue("desc", item.desc || "");
     if (item.dateOfPayment)
       setValue("dateOfPayment", item.dateOfPayment.split("T")[0]);
+  };
+
+  const handleUpdate = (data) => {
+    if (!editingItem) return;
+
+    const currentData = {
+      sum: Number(data.sum),
+      titleCommunal: editingItem.titleCommunal?._id || data.titleCommunal,
+      dateOfPayment: data.dateOfPayment,
+      desc: data.desc || "",
+    };
+
+    const initialData = {
+      sum: Number(editingItem.sum),
+      titleCommunal: editingItem.titleCommunal?._id,
+      dateOfPayment: editingItem.dateOfPayment
+        ? editingItem.dateOfPayment.split("T")[0]
+        : "",
+      desc: editingItem.desc || "",
+    };
+
+    // 🔥 CHECK
+    if (JSON.stringify(currentData) === JSON.stringify(initialData)) {
+      z;
+
+      setEditingItem(null);
+      return;
+    }
+
+    updateMutation.mutate({
+      id: editingItem._id,
+      ...data,
+    });
+  };
+
+  const handleDeleteConfirm = (id) => {
+    // Toast ichida bizning maxsus komponentimiz chiqadi
+    toast.info(
+      ({ closeToast }) => (
+        <div className="flex flex-col gap-3 p-1">
+          <div className="flex items-center gap-3">
+            <div className="bg-orange-100 p-2 rounded-full">
+              <AlertTriangle size={20} className="text-orange-600" />
+            </div>
+            <div>
+              <h4 className="font-bold text-gray-800 text-sm">
+                O'chirishni tasdiqlang
+              </h4>
+              <p className="text-xs text-gray-500">
+                Haqiqatan ham ushbu ma'lumotni o'chirmoqchimisiz?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-2">
+            {/* Qaytish tugmasi */}
+            <button
+              onClick={closeToast}
+              className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
+            >
+              Bekor qilish
+            </button>
+
+            {/* O'chirish tugmasi */}
+            <button
+              onClick={async () => {
+                closeToast(); // Oldin toastni yopamiz
+                deleteMutation.mutate(id);
+              }}
+              className="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-md shadow-red-200 transition-all"
+            >
+              O'chirish
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        position: "top-center",
+        autoClose: false, // Foydalanuvchi tugmani bosmaguncha yopilmaydi
+        closeOnClick: false,
+        draggable: false,
+        icon: false, // Standart ikonkani o'chirib qo'yamiz
+      }
+    );
+  };
+
+  const handleFilterClick = () => {
+    // 1. Holatlarni tekshiramiz (Senda "all" ekan)
+    const isDateActive = startDate || endDate;
+    const isCategoryActive = selectedCategory && selectedCategory !== "all";
+
+    if (!isDateActive && !isCategoryActive) {
+      toast.info("Фильтры не выбраны", {
+        icon: <Info size={20} />,
+        className: "rounded-2xl font-bold",
+      });
+      return;
+    }
+
+    // 2. Toast vizual parametrlari
+    let message = "";
+    let toastIcon = <FilterX size={20} className="text-[#d97706]" />;
+    let toastColor = "#fffbeb";
+
+    if (isDateActive && isCategoryActive) {
+      message = "Сбросить всё (период и категорию)?";
+      toastIcon = <RefreshCcw size={20} className="text-[#4f46e5]" />;
+      toastColor = "#eef2ff";
+    } else if (isDateActive) {
+      message = "Сбросить выбранный период?";
+      toastIcon = <Calendar size={20} className="text-[#3b82f6]" />;
+      toastColor = "#eff6ff";
+    } else {
+      message = "Сбросить фильтр категории?";
+      toastIcon = <Layers size={20} className="text-[#10b981]" />;
+      toastColor = "#ecfdf5";
+    }
+
+    toast.warning(
+      ({ closeToast }) => (
+        <div className="flex flex-col gap-4 p-1">
+          <div className="flex items-center gap-3">
+            <div
+              className="p-3 rounded-2xl"
+              style={{ backgroundColor: toastColor }}
+            >
+              {toastIcon}
+            </div>
+            <div className="flex flex-col text-left">
+              <p className="text-[13px] font-black text-[#000000] uppercase tracking-tight leading-tight">
+                {message}
+              </p>
+              <p className="text-[10px] text-[#666666] font-medium mt-1">
+                Все данные будут восстановлены
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                // 1. Statelarni tozalash
+                setStartDate("");
+                setEndDate("");
+                setAppliedDate({ start: "", end: "" });
+                setSelectedCategory("all"); // "all" ga qaytaramiz
+                setPage(1);
+
+                // 2. Navigatsiya (Hamma cheklarni ko'rsatish uchun asosiy yo'lga qaytamiz)
+                nav("/communal/all");
+
+                closeToast();
+
+                // Yakuniy muvaffaqiyat xabari
+                const successMsg =
+                  isDateActive && isCategoryActive
+                    ? "Все фильтры очищены"
+                    : isDateActive
+                    ? "Период очищен"
+                    : "Категория сброшена";
+
+                toast.success(successMsg, {
+                  icon: <RefreshCcw size={18} className="animate-spin" />,
+                  className:
+                    "rounded-[20px] font-black text-[12px] uppercase shadow-lg",
+                });
+              }}
+              className="flex-[1.5] py-3 bg-[#000000] text-white text-[10px] font-black rounded-xl uppercase tracking-widest hover:bg-[#333333] transition-colors"
+            >
+              Да, очистить
+            </button>
+            <button
+              onClick={closeToast}
+              className="flex-1 py-3 bg-[#f1f5f9] text-[#000000] text-[10px] font-black rounded-xl uppercase tracking-widest"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        position: "top-center",
+        autoClose: false,
+        closeOnClick: false,
+        className:
+          "rounded-[28px] shadow-2xl bg-white p-3 border border-[#f1f5f9]",
+      }
+    );
+  };
+  // Haqiqiy o'chirish jarayoni
+  const executeDelete = async (id) => {
+    const loadingToast = toast.loading("O'chirilmoqda...");
+    try {
+      // API so'rovingni kutamiz
+      // await instance.delete(`/communal/${id}`);
+
+      // Test uchun 1 soniya kutamiz
+      await new Promise((res) => setTimeout(res, 1000));
+
+      toast.update(loadingToast, {
+        render: "Muvaffaqiyatli o'chirildi! 🗑️",
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+
+      // Ma'lumotlarni qayta yuklash (refetch)
+      // refetch();
+    } catch (err) {
+      toast.update(loadingToast, {
+        render: "Xatolik yuz berdi! ❌",
+        type: "error",
+        isLoading: false,
+        autoClose: 3000,
+      });
+    }
   };
 
   useEffect(() => {
@@ -402,13 +654,7 @@ const CommunalAll = () => {
               </button>
             </div>
             <form
-              onSubmit={handleSubmit((data) =>
-                updateMutation.mutate({
-                  ...data,
-                  id: editingItem._id,
-                  sum: Number(data.sum),
-                })
-              )}
+              onSubmit={handleSubmit(handleUpdate)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") e.preventDefault();
               }}
@@ -489,30 +735,23 @@ const CommunalAll = () => {
               {currentTitle}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-4 w-full">
-              <div className="relative">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full mb-8">
+              {/* 1. ВЫБРАТЬ ДАТУ - Chap taraf */}
+              <div className="relative w-full md:flex-1">
                 <button
                   type="button"
                   onClick={() => setIsDateModalOpen(true)}
-                  className="group relative flex items-center gap-2 px-5 h-[44px] min-w-[190px]
-bg-gradient-to-r from-[#1e3a8a] via-[#2563eb] to-[#1d4ed8]
-text-white rounded-[22px]
-font-bold shadow-md shadow-[#1d4ed8]/30
-transition-all duration-300
-hover:-translate-y-1 hover:shadow-lg hover:shadow-[#1d4ed8]/50
-active:scale-95 overflow-hidden"
+                  className="group w-full flex items-center gap-4 px-5 h-[60px] 
+      bg-gradient-to-br from-[#1e3a8a] to-[#2563eb] 
+      text-white rounded-[20px] font-semibold 
+      shadow-lg shadow-blue-500/20 
+      hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300"
                 >
-                  {/* glow effect */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-all duration-500 bg-white blur-2xl"></div>
-
-                  {/* icon */}
-                  <div className="relative flex items-center justify-center w-7 h-7 rounded-xl bg-white/15 group-hover:bg-white/25 transition-all">
-                    <Calendar size={14} />
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/15 border border-white/10 group-hover:bg-white/25 transition-all">
+                    <Calendar size={20} />
                   </div>
-
-                  {/* text */}
-                  <div className="flex flex-col leading-tight relative">
-                    <span className="text-[10px] font-bold uppercase tracking-widest">
+                  <div className="flex flex-col items-start leading-tight">
+                    <span className="text-[13px] whitespace-nowrap">
                       {startDate || endDate
                         ? startDate && endDate
                           ? `${startDate} - ${endDate}`
@@ -529,7 +768,6 @@ active:scale-95 overflow-hidden"
                       className="fixed inset-0 bg-[#0f172a]/60 backdrop-blur-md"
                       onClick={() => setIsDateModalOpen(false)}
                     />
-
                     <div
                       className="relative w-full max-w-md bg-white rounded-[30px] p-8 shadow-2xl"
                       onClick={(e) => e.stopPropagation()}
@@ -540,25 +778,20 @@ active:scale-95 overflow-hidden"
                         </div>
                         Выберите диапазон
                       </h3>
-
                       <div className="space-y-4">
                         <input
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0]
-            rounded-2xl outline-none focus:border-[#1d4ed8] transition-all [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl outline-none focus:border-[#1d4ed8] transition-all"
                         />
-
                         <input
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0]
-            rounded-2xl outline-none focus:border-[#1d4ed8] transition-all [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl outline-none focus:border-[#1d4ed8] transition-all"
                         />
                       </div>
-
                       <div className="flex gap-3 mt-8">
                         <button
                           type="button"
@@ -569,30 +802,22 @@ active:scale-95 overflow-hidden"
                             setPage(1);
                             setIsDateModalOpen(false);
                           }}
-                          className="flex-1 py-3 rounded-2xl font-bold text-[#64748b]
-            bg-[#f1f5f9] hover:bg-[#e2e8f0] transition-all"
+                          className="flex-1 py-3 rounded-2xl font-bold text-[#64748b] bg-[#f1f5f9] hover:bg-[#e2e8f0] transition-all"
                         >
-                          Tozalash
+                          Очистить
                         </button>
-
                         <button
                           type="button"
                           onClick={() => {
                             let from = startDate;
                             let to = endDate;
-
                             if (from && !to) to = from;
                             if (!from && to) from = to;
-
                             setAppliedDate({ start: from, end: to });
-
                             setPage(1);
                             setIsDateModalOpen(false);
                           }}
-                          className="flex-1 py-3 rounded-2xl font-bold text-white
-            bg-gradient-to-r from-[#1d4ed8] to-[#1e40af]
-            shadow-md hover:shadow-lg hover:brightness-110
-            transition-all active:scale-95"
+                          className="flex-1 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-[#1d4ed8] to-[#1e40af] shadow-md hover:shadow-lg transition-all active:scale-95"
                         >
                           Применить
                         </button>
@@ -602,39 +827,46 @@ active:scale-95 overflow-hidden"
                 )}
               </div>
 
-              <div className="relative">
+              <div className="flex items-center justify-center">
+                <button
+                  onClick={handleFilterClick}
+                  className={`w-[60px] h-[60px] flex items-center justify-center border rounded-2xl transition-all shadow-sm active:scale-95 ${
+                    startDate ||
+                    endDate ||
+                    (selectedCategory && selectedCategory !== "Все")
+                      ? "bg-[#eff6ff] border-[#3b82f6] text-[#3b82f6]" // Filtr aktiv bo'lsa ko'k rang
+                      : "bg-white border-[#e2e8f0] text-[#94a3b8]" // Filtr ochiq bo'lmasa kulrang
+                  }`}
+                >
+                  <FilterX size={22} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              {/* 2. ВЫБЕРИТЕ ОТЧЁТ - Markazda */}
+              <div className="relative w-full md:flex-1">
                 <button
                   type="button"
                   onClick={() => setOpen(!open)}
-                  className="group relative flex items-center justify-between gap-3 px-5 h-[44px] min-w-[190px]
-bg-gradient-to-r from-[#10b981] via-[#22c55e] to-[#34d399]
-text-white rounded-[22px]
-shadow-md shadow-[#22c55e]/25
-transition-all duration-300
-hover:-translate-y-1
-hover:shadow-lg hover:shadow-[#22c55e]/40
-active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
+                  className="group w-full flex items-center justify-between px-5 h-[60px] 
+      bg-gradient-to-br from-[#10b981] to-[#059669] 
+      text-white rounded-[20px] font-semibold 
+      shadow-lg shadow-emerald-500/20 
+      hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/30 transition-all duration-300"
                 >
-                  {/* glow */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-all duration-500 bg-white blur-2xl"></div>
-
-                  {/* left */}
-                  <div className="flex items-center gap-2 relative">
-                    <FileText
-                      size={14}
-                      className="text-[#d1fae5] transition-transform group-hover:scale-110"
-                    />
-
-                    <span className="text-white">
-                      {selected ? selected.label : "ОТЧЁТ"}
-                    </span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/15 border border-white/10 group-hover:bg-white/25 transition-all">
+                      <FileText size={20} />
+                    </div>
+                    <div className="flex flex-col items-start leading-tight">
+                      <span className="text-[13px] whitespace-nowrap">
+                        Выберите отчёт
+                      </span>
+                    </div>
                   </div>
-
-                  {/* arrow */}
                   <ChevronDown
-                    size={14}
-                    className={`relative transition-all duration-300 text-[#eafff3] ${
-                      open ? "rotate-180 text-white" : "group-hover:text-white"
+                    size={18}
+                    className={`transition-transform duration-300 ${
+                      open ? "rotate-180" : ""
                     }`}
                   />
                 </button>
@@ -646,21 +878,18 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                       className="fixed inset-0 z-10"
                       onClick={() => setOpen(false)}
                     ></div>
-
-                    <div className="absolute left-0 mt-2 w-[190px] bg-[#ecfdf5] border border-[#a7f3d0] rounded-[18px] shadow-2xl z-20 overflow-hidden">
-                      <div className="max-h-[180px] overflow-y-auto custom-scrollbar p-1 space-y-1">
+                    <div className="absolute left-0 mt-3 w-full min-w-[200px] bg-white border border-emerald-100 rounded-[22px] shadow-2xl z-20 overflow-hidden p-2 animate-in fade-in zoom-in duration-200">
+                      <div className="max-h-[180px] overflow-y-auto custom-scrollbar space-y-1">
                         {options.map((opt) => (
                           <div
                             key={opt.value}
                             onClick={() => handleSelect(opt)}
-                            className="flex items-center gap-3 px-4 py-2.5 cursor-pointer rounded-xl
-              text-[#065f46] hover:bg-[#d1fae5] transition-all group"
+                            className="flex items-center gap-3 px-4 py-3 cursor-pointer rounded-xl text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all group"
                           >
-                            <span className="text-base group-hover:scale-110 transition-transform">
+                            <span className="text-lg group-hover:scale-110 transition-transform">
                               {opt.icon}
                             </span>
-
-                            <span className="font-semibold text-[12px] group-hover:text-[#047857]">
+                            <span className="font-bold text-[12px]">
                               {opt.label}
                             </span>
                           </div>
@@ -671,134 +900,98 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 )}
               </div>
 
-              <div className="relative">
-                {/* BUTTON */}
+              {/* 3. КАТЕГОРИЯ - O'ng taraf */}
+              <div className="relative w-full md:flex-1">
                 <button
                   type="button"
                   onClick={() => setIsOpen(!isOpen)}
-                  className="group flex items-center justify-between gap-4 px-5 h-[48px] min-w-[290px]
-    bg-gradient-to-r from-[#334155] via-[#3b3b98] to-[#4338ca]
-    text-white rounded-[22px]
-    border border-[#475569]
-    shadow-[0_10px_25px_-15px_rgba(67,56,202,0.4)]
-    hover:-translate-y-1 hover:shadow-[0_25px_45px_-15px_rgba(67,56,202,0.5)]
-    active:scale-95 transition-all duration-300 overflow-hidden"
+                  className="group w-full flex items-center justify-between px-5 h-[60px] 
+      bg-gradient-to-br from-[#4338ca] to-[#3730a3] 
+      text-white rounded-[20px] font-semibold 
+      shadow-lg shadow-indigo-500/20 
+      hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300"
                 >
-                  {/* glow */}
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-15 transition-all duration-500 bg-white blur-2xl"></div>
-
-                  {/* LEFT */}
-                  <div className="flex items-center gap-3 relative">
-                    <div
-                      className="flex items-center justify-center w-8 h-8 rounded-xl
-        bg-white/10 border border-white/20
-        group-hover:bg-white/20 transition-all"
-                    >
-                      <Layers className="text-white" size={16} />
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/15 border border-white/10 group-hover:bg-white/25 transition-all">
+                      <Layers size={20} />
                     </div>
-
-                    <div className="flex flex-col items-start leading-none">
-                      <span className="text-[9px] text-white/60 font-medium uppercase tracking-[0.18em] mb-1">
-                        Категория
-                      </span>
-
-                      <span className="font-bold text-white text-sm tracking-wide">
+                    <div className="flex flex-col items-start leading-tight">
+                      <span className="text-[13px] whitespace-nowrap truncate max-w-[120px]">
                         {selectedCategory === "all"
                           ? "Все услуги"
                           : selectedCategory}
                       </span>
                     </div>
                   </div>
-
-                  {/* ARROW */}
-                  <div
-                    className={`p-1.5 rounded-lg transition-all duration-300
-      ${isOpen ? "bg-white/20" : "bg-white/10"}`}
-                  >
-                    <ChevronDown
-                      className={`text-white transition-transform duration-500 ${
-                        isOpen ? "rotate-180" : ""
-                      }`}
-                      size={15}
-                    />
-                  </div>
+                  <ChevronDown
+                    size={18}
+                    className={`transition-transform duration-300 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
 
                 {/* DROPDOWN */}
                 {isOpen && (
-                  <div
-                    className="absolute left-0 mt-3 w-[290px]
-      bg-[#1e293b]/95 backdrop-blur-xl
-      border border-[#334155]
-      rounded-[18px]
-      shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)]
-      z-30 overflow-hidden"
-                  >
-                    {/* SCROLL */}
-                    <div className="max-h-[220px] overflow-y-auto p-2 space-y-1 custom-scrollbar">
-                      {/* ALL */}
-                      <div
-                        onClick={() => {
-                          setPage(1);
-                          setSelectedCategory("all");
-                          setIsOpen(false);
-                          nav("/communal/all");
-                        }}
-                        className={`px-4 py-3 rounded-xl cursor-pointer
-          font-semibold text-sm transition-all
-          ${
-            selectedCategory === "all"
-              ? "bg-[#6366f1]/25 text-[#a5b4fc]"
-              : "text-[#e2e8f0] hover:bg-[#334155]"
-          }`}
-                      >
-                        📊 Показать все категории
-                      </div>
-
-                      {/* ITEMS */}
-                      {Object.keys(config).map((cat) => (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsOpen(false)}
+                    ></div>
+                    <div className="absolute right-0 mt-3 w-full min-w-[260px] bg-[#1e293b] border border-slate-700 rounded-[22px] shadow-2xl z-20 overflow-hidden p-2 animate-in fade-in zoom-in duration-200">
+                      <div className="max-h-[220px] overflow-y-auto custom-scrollbar space-y-1 p-1">
                         <div
-                          key={cat}
                           onClick={() => {
                             setPage(1);
-                            setSelectedCategory(cat);
+                            setSelectedCategory("all");
                             setIsOpen(false);
-
-                            const categoryData = allStatsResponse?.data?.find(
-                              (item) =>
-                                (item.titleCommunal?.title ||
-                                  item.titleCommunal) === cat
-                            );
-
-                            const categoryID =
-                              categoryData?.titleCommunal?._id ||
-                              categoryData?._id;
-
-                            if (categoryID) {
-                              nav(`/communal/all/${categoryID}`);
-                            } else {
-                              nav("/communal/all");
-                            }
+                            nav("/communal/all");
                           }}
-                          className={`px-4 py-3 rounded-xl cursor-pointer
-            font-semibold text-sm transition-all
-            ${
-              selectedCategory === cat
-                ? "bg-[#6366f1]/25 text-[#a5b4fc]"
-                : "text-[#cbd5e1] hover:bg-[#334155]"
-            }`}
+                          className={`px-4 py-3 rounded-xl cursor-pointer font-bold text-[12px] transition-all ${
+                            selectedCategory === "all"
+                              ? "bg-indigo-500/20 text-indigo-300"
+                              : "text-[#e2e8f0] hover:bg-slate-800"
+                          }`}
                         >
-                          {cat}
+                          📊 Показать все категории
                         </div>
-                      ))}
+                        {Object.keys(config).map((cat) => (
+                          <div
+                            key={cat}
+                            onClick={() => {
+                              setPage(1);
+                              setSelectedCategory(cat);
+                              setIsOpen(false);
+                              const categoryData = allStatsResponse?.data?.find(
+                                (item) =>
+                                  (item.titleCommunal?.title ||
+                                    item.titleCommunal) === cat
+                              );
+                              const categoryID =
+                                categoryData?.titleCommunal?._id ||
+                                categoryData?._id;
+                              categoryID
+                                ? nav(`/communal/all/${categoryID}`)
+                                : nav("/communal/all");
+                            }}
+                            className={`px-4 py-3 rounded-xl cursor-pointer font-bold text-[12px] transition-all ${
+                              selectedCategory === cat
+                                ? "bg-indigo-500/20 text-indigo-300"
+                                : "text-[#e2e8f0] hover:bg-slate-800"
+                            }`}
+                          >
+                            {cat}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
           </div>
 
-          {/* STATS CARDS */}
+          {/* STATS CARDS
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full lg:w-auto">
             <div className="relative md:col-span-2 bg-indigo-600 p-8 px-10 rounded-[40px] shadow-2xl text-white overflow-hidden group">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:rotate-12 transition-transform">
@@ -831,7 +1024,7 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                   className="pt-4 border-t border-indigo-400/30 space-y-1
                 "
                 >
-                  {/* TOP ROW: Year Text and Total Sum */}
+                  TOP ROW: Year Text and Total Sum
                   <div className="flex justify-between items-center">
                     <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">
                       За {new Date().getFullYear() - 1} год было:
@@ -846,16 +1039,16 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                     </div>
                   </div>
 
-                  {/* BOTTOM ROW: Checks Label and Count */}
+                  BOTTOM ROW: Checks Label and Count
                   <div className="flex justify-between items-center">
                     <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider">
                       За {new Date().getFullYear() - 1} год чеков:
                     </p>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-extrabold text-white/90">
+                      <span className="text-xl font-extrabold mr-[3px] text-white/90">
                         {stats.prevYearChecks ?? 0}
                       </span>
-                      <span className="text-[10px] font-bold text-white/60 uppercase">
+                      <span className="text-[10px] font-bold mr-[1px] text-white/60 uppercase">
                         шт
                       </span>
                     </div>
@@ -873,15 +1066,15 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 </p>
                 <p className="text-lg font-black text-indigo-500">
                   {stats.currentMonthSum.toLocaleString()}{" "}
-                  <span className="text-[10px] text-[#475569]">UZS</span>
+                  <span className="text-[12px]">UZS</span>
                 </p>
                 <div className="mt-2 text-right border-t border-slate-50 pt-1">
                   <span className="text-[9px] text-[#475569] font-bold uppercase">
                     {stats.prevMonthName}:{" "}
                   </span>
-                  <span className="text-[12px] font-black text-indigo-500">
+                  <span className="text-[13px] font-black text-indigo-500">
                     {stats.prevMonthSum.toLocaleString()}
-                    <span className="text-[10px] text-[#475569] ml-1">UZS</span>
+                    <span className="text-[10px] ml-1">UZS</span>
                   </span>
                 </div>
               </div>
@@ -907,7 +1100,7 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                 </div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* JADVAL */}
@@ -981,7 +1174,7 @@ active:scale-95 font-bold text-[10px] tracking-wider uppercase overflow-hidden"
                         <Edit3 size={16} />
                       </button>
                       <button
-                        onClick={() => deleteMutation.mutate(item._id)}
+                        onClick={() => handleDeleteConfirm(item._id)}
                         className="p-2.5 rounded-2xl bg-[#fff1f2] text-[#f43f5e] hover:bg-[#f43f5e] hover:text-white active:scale-90 transition-all"
                       >
                         <Trash2 size={18} />
