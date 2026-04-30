@@ -783,13 +783,13 @@ const CommunalAll = () => {
                           type="date"
                           value={startDate}
                           onChange={(e) => setStartDate(e.target.value)}
-                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl outline-none focus:border-[#1d4ed8] transition-all"
+                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl outline-none focus:border-[#1d4ed8] transition-all [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         />
                         <input
                           type="date"
                           value={endDate}
                           onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl outline-none focus:border-[#1d4ed8] transition-all"
+                          className="w-full px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-2xl outline-none focus:border-[#1d4ed8] transition-all [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                         />
                       </div>
                       <div className="flex gap-3 mt-8">
