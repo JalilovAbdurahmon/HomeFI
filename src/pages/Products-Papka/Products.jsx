@@ -1467,120 +1467,154 @@ const Products = () => {
         {/* --- O'NG TARAFF: DINAMIK CATEGORY CARDS --- */}
         <div className="lg:col-span-4 space-y-4 mt-[82px]">
           <div className="flex flex-col gap-4">
-            {categories.map((cat) => {
-              // 1. Funksiya faqat ma'lumotlarni saralab bersin
-              const getCategoryDetails = (id, name) => {
-                const lowerName = name?.toLowerCase();
-                if (id === "all")
+            {/* 1. "Barchasi" va qolgan kategoriyalarni birlashtiramiz */}
+            {[{ _id: "all", title: "Все категории" }, ...categories].map(
+              (cat) => {
+                // Backend va statik obyekt uchun ID va Nomni aniqlashtiramiz
+                const categoryId = cat._id || cat.id;
+                const categoryName = cat.title || cat.name;
+
+                // Ikonka va ranglarni aniqlash funksiyasi
+                const getCategoryDetails = (id, name) => {
+                  const lowerName = name?.toLowerCase() || "";
+
+                  // BARCHASI
+                  if (id === "all" || lowerName.includes("barchasi")) {
+                    return {
+                      icon: <LayoutGrid size={22} />,
+                      color: "text-blue-600",
+                      bg: "bg-blue-50",
+                    };
+                  }
+                  // XO'JALIK MOLLARI
+                  if (lowerName.includes("хоз") || lowerName.includes("uy")) {
+                    return {
+                      icon: <Home size={22} />,
+                      color: "text-[#059669]",
+                      bg: "bg-[#ecfdf5]",
+                    };
+                  }
+                  // IDISHLAR / BANKALAR
+                  if (
+                    lowerName.includes("бан") ||
+                    lowerName.includes("idish")
+                  ) {
+                    return {
+                      icon: <Cylinder size={22} />,
+                      color: "text-[#d97706]",
+                      bg: "bg-[#fffbeb]",
+                    };
+                  }
+                  // SAQLASH / KONSERVATSIYA
+                  if (
+                    lowerName.includes("сохр") ||
+                    lowerName.includes("saqlan")
+                  ) {
+                    return {
+                      icon: <Bookmark size={22} />,
+                      color: "text-[#e11d48]",
+                      bg: "bg-[#fff1f2]",
+                    };
+                  }
+                  // 🔥 KO'P SOTIB OLINADIGANLAR (ЧАСТО ПОКУПАЕМЫЕ)
+                  if (
+                    lowerName.includes("час") ||
+                    lowerName.includes("ko'p") ||
+                    lowerName.includes("sotib")
+                  ) {
+                    return {
+                      icon: <RefreshCcw size={22} />,
+                      color: "text-[#7c3aed]",
+                      bg: "bg-[#f5f3ff]",
+                    };
+                  }
+
+                  // DEFAULT (Boshqa hamma holatlar uchun)
                   return {
-                    icon: <LayoutGrid size={22} />,
-                    color: "text-blue-600",
-                    bg: "bg-blue-50",
+                    icon: <ShoppingBag size={22} />,
+                    color: "text-slate-600",
+                    bg: "bg-[#f8fafc]",
                   };
-                if (lowerName?.includes("хоз") || lowerName?.includes("uy"))
-                  return {
-                    icon: <Home size={22} />,
-                    color: "text-[#059669]",
-                    bg: "bg-[#ecfdf5]",
-                  };
-                if (lowerName?.includes("бан") || lowerName?.includes("idish"))
-                  return {
-                    icon: <Cylinder size={22} />,
-                    color: "text-[#d97706]",
-                    bg: "bg-[#fffbeb]",
-                  };
-                if (lowerName?.includes("сохр") || lowerName?.includes("saqlan"))
-                  return {
-                    icon: <Bookmark size={22} />,
-                    color: "text-[#e11d48]",
-                    bg: "bg-[#fff1f2]",
-                  };
-                if (lowerName?.includes("час") || lowerName?.includes("ko'p"))
-                  return {
-                    icon: <RefreshCcw size={22} />,
-                    color: "text-[#7c3aed]",
-                    bg: "bg-[#f5f3ff]",
-                  };
-                return {
-                  icon: <ShoppingBag size={22} />,
-                  color: "text-#475569",
-                  bg: "bg-[#f8fafc]",
                 };
-              };
 
-              // 2. Detallarni o'zgaruvchiga olamiz
-              const details = getCategoryDetails(cat.id, cat.name);
-              const isActive = selectedCategory === cat.id;
+                const details = getCategoryDetails(categoryId, categoryName);
 
-              return (
-                <div
-                  key={cat.id}
-                  onClick={() => {
-                    setSelectedCategory(cat.id);
-                    setPage(1);
-                  }}
-                  className={`cursor-pointer group relative overflow-hidden p-4 rounded-[24px] border-2 transition-all duration-500 ${
-                    isActive
-                      ? "bg-white border-[#3b59ce] shadow-[0_20px_40px_-12px_rgba(59,89,206,0.2)] -translate-x-3"
-                      : "bg-slate-50/50 border-transparent hover:bg-white hover:border-slate-200 hover:shadow-lg"
-                  }`}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 top-0 h-full w-1.5 bg-[#3b59ce] rounded-r-full" />
-                  )}
+                // AKTIVLIKNI TEKSHIRISH
+                // Agar tanlangan kategoriya "all" bo'lsa yoki bo'sh bo'lsa, "Barchasi" aktiv bo'ladi
+                const isActive =
+                  selectedCategory === categoryId ||
+                  (categoryId === "all" && !selectedCategory);
 
-                  <div className="flex justify-between items-center relative z-10">
-                    <div className="flex items-center gap-4">
-                      {/* IKONKA KONTEYNERI */}
-                      <div
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm ${
-                          isActive
-                            ? "bg-[#3b59ce] text-white rotate-[360deg] shadow-blue-200"
-                            : // Mana bu yerda detallardan ranglarni ishlatamiz
-                              `${details.bg} ${details.color} group-hover:scale-110`
-                        }`}
-                      >
-                        {/* Obyektni emas, faqat ikonkani chiqaramiz */}
-                        {details.icon}
-                      </div>
+                return (
+                  <div
+                    key={categoryId || "all-key"}
+                    onClick={() => {
+                      // "Barchasi" bosilsa, filterni bo'shatish uchun "" yuboramiz
+                      const newId = categoryId === "all" ? "" : categoryId;
+                      setSelectedCategory(newId);
+                      if (typeof setPage === "function") setPage(1);
+                    }}
+                    className={`cursor-pointer group relative overflow-hidden p-4 rounded-[24px] border-2 transition-all duration-500 ${
+                      isActive
+                        ? "bg-white border-[#3b59ce] shadow-[0_20px_40px_-12px_rgba(59,89,206,0.2)] -translate-x-3"
+                        : "bg-slate-50/50 border-transparent hover:bg-white hover:border-slate-200 hover:shadow-lg"
+                    }`}
+                  >
+                    {isActive && (
+                      <div className="absolute left-0 top-0 h-full w-1.5 bg-[#3b59ce] rounded-r-full" />
+                    )}
 
-                      <div>
-                        <h3
-                          className={`font-black text-[9px] uppercase tracking-[0.2em] transition-colors ${
-                            isActive ? "text-[#3b59ce]" : "text-slate-400"
+                    <div className="flex justify-between items-center relative z-10">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm ${
+                            isActive
+                              ? "bg-[#3b59ce] text-white rotate-[360deg]"
+                              : `${details.bg} ${details.color} group-hover:scale-110`
                           }`}
                         >
-                          Категория
-                        </h3>
-                        <p
-                          className={`font-black text-[15px] mt-0.5 transition-colors ${
-                            isActive ? "text-slate-900" : "text-slate-600"
-                          }`}
-                        >
-                          {cat.name}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* O'NG TOMONDAGI INDICATOR */}
-                    <div className="flex items-center">
-                      {isActive ? (
-                        <div className="flex gap-1">
-                          <div className="w-1 h-4 bg-[#3b59ce] rounded-full animate-bounce [animation-delay:-0.3s]" />
-                          <div className="w-1 h-4 bg-[#3b59ce] rounded-full animate-bounce [animation-delay:-0.15s]" />
-                          <div className="w-1 h-4 bg-[#3b59ce] rounded-full animate-bounce" />
+                          {details.icon}
                         </div>
-                      ) : (
-                        <ChevronRight
-                          size={18}
-                          className="text-slate-300 group-hover:text-slate-500 transition-transform group-hover:translate-x-1"
-                        />
-                      )}
+
+                        <div>
+                          <h3
+                            className={`font-black text-[9px] uppercase tracking-[0.2em] transition-colors ${
+                              isActive ? "text-[#3b59ce]" : "text-slate-400"
+                            }`}
+                          >
+                            {categoryId === "all"
+                              ? "Общий список"
+                              : "Категория"}
+                          </h3>
+                          <p
+                            className={`font-black text-[15px] mt-0.5 transition-colors ${
+                              isActive ? "text-slate-900" : "text-slate-600"
+                            }`}
+                          >
+                            {categoryName}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center">
+                        {isActive ? (
+                          <div className="flex gap-1">
+                            <div className="w-1 h-4 bg-[#3b59ce] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                            <div className="w-1 h-4 bg-[#3b59ce] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                            <div className="w-1 h-4 bg-[#3b59ce] rounded-full animate-bounce" />
+                          </div>
+                        ) : (
+                          <ChevronRight
+                            size={18}
+                            className="text-slate-300 group-hover:text-slate-500 transition-transform group-hover:translate-x-1"
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              }
+            )}
           </div>
         </div>
       </div>
