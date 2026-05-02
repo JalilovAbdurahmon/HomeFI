@@ -16,16 +16,11 @@ import {
   Trash,
   FilterX,
   LayoutGrid,
-  Leaf,
-  Beef,
-  GlassWater,
-  Inbox,
   SearchX,
   Bookmark,
   Home,
   Cylinder,
   RefreshCcw,
-  Milk,
   Search,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
@@ -54,8 +49,18 @@ const Products = () => {
   const dayRef = useRef(null);
   const monthRef = useRef(null);
   const yearRef = useRef(null);
+  // --- AUTOCOMPLETE STATE ---
+  const [productSearch, setProductSearch] = useState(""); // Inputdagi matn uchun
+  const [searchSuggestions, setSearchSuggestions] = useState([]); // Backenddan keladigan natijalar
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false); // Ro'yxat ochiqligi
 
   const queryClient = useQueryClient();
+
+  const createForm = useForm();
+  const updateForm = useForm();
+
+  const { setValue: setCreateValue } = createForm;
+  // const { setValue } = updateForm;
 
   // Tashqarini bosganda yopish mantiqi
   useEffect(() => {
@@ -120,6 +125,29 @@ const Products = () => {
       return () => clearTimeout(timer);
     }
   }, [openDateModal, activeInput, dateFilter.from, dateFilter.to]);
+
+  // Qidiruv effekti
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      // 1-harfdanoq qidirishi uchun > 0 qilamiz
+      if (productSearch && productSearch.trim().length > 0) {
+        try {
+          const res = await instance.get(
+            `/titleProducts?search=${productSearch}`
+          );
+          setSearchSuggestions(res.data || []);
+          setIsSuggestionsOpen(true);
+        } catch (err) {
+          console.error("Backend qidiruvda xato:", err);
+        }
+      } else {
+        setSearchSuggestions([]);
+        setIsSuggestionsOpen(false);
+      }
+    }, 200); // 200ms yetarli
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [productSearch]);
 
   // 1. Bugungi sanani aniqlovchi obyekt
   const now = new Date();
@@ -451,13 +479,15 @@ const Products = () => {
 
   // 🔥 DYNAMIC CATEGORY
   const categories = useMemo(() => {
-    const backendCats = (categoriesResponse || []).map((c) => ({
-      id: c._id,
-      name: c.title,
+    return (categoriesResponse || []).map((c) => ({
+      _id: c._id,
+      title: c.title,
     }));
-
-    return [{ id: "all", name: "Все категории" }, ...backendCats];
   }, [categoriesResponse]);
+
+  const getCategoryDetails = (id) => {
+    return categories.find((c) => c.id === id);
+  };
 
   const allUnits = useMemo(() => unitsResponse || [], [unitsResponse]);
   const totalPages = Math.ceil((productsData?.totalCount || 0) / limit);
@@ -469,10 +499,6 @@ const Products = () => {
       setPage(totalPages);
     }
   }, [productsData?.totalCount, totalPages, page, setPage]);
-
-  // --- FORMS ---
-  const createForm = useForm();
-  const updateForm = useForm();
 
   // const setupAutoSum = (form) => {
   //   const qty = form.watch("quantity");
@@ -588,10 +614,36 @@ const Products = () => {
     updateMutation.mutate({ ...data, user: user?._id || user?.id });
   };
 
+  const handleSelectProductFromList = (item) => {
+    setProductSearch(item.title);
+
+    const catId =
+      typeof item.productsCategory === "object"
+        ? item.productsCategory?._id
+        : item.productsCategory;
+
+    const unitId =
+      typeof item.edinisaIzmereniya === "object"
+        ? item.edinisaIzmereniya?._id
+        : item.edinisaIzmereniya;
+
+    // 🔥 ENG MUHIM QISM
+    setCreateValue("title", item.title);
+    setCreateValue("productsCategory", catId);
+    setCreateValue("edinisaIzmereniya", unitId);
+
+    setIsSuggestionsOpen(false);
+  };
+
   const openEditModal = (product) => {
+    3;
     setEditingProduct(product);
+    // 1. Yangi qo'shgan qidiruv statemizga mahsulot nomini yuklaymiz
+    // product.title endi obyekt, shuning uchun uning ichidagi .title matnini olamiz
+    const titleText = product.title?.title || product.title || "";
+    setProductSearch(titleText);
     updateForm.reset({
-      title: product.title,
+      title: product.title?._id || product.title,
       dateOfPayment: product.dateOfPayment,
       edinisaIzmereniya:
         product.edinisaIzmereniya?._id || product.edinisaIzmereniya,
@@ -606,11 +658,13 @@ const Products = () => {
   const closeAddModal = () => {
     setOpenAdd(false);
     createForm.reset();
+    setProductSearch(""); // Qidiruv matnini tozalash
   };
   const closeEditModal = () => {
     setOpenEdit(false);
     setEditingProduct(null);
     updateForm.reset();
+    setProductSearch(""); // Qidiruv matnini tozalash
   };
 
   useEffect(() => {
@@ -1114,12 +1168,14 @@ const Products = () => {
 
             {/* --- CARDLAR LISTI (Scroll qismi) --- */}
             <div
-              className={`grid grid-cols-1 md:grid-cols-2 gap-4 mb-10 overflow-y-auto pr-2 custom-scroll-container content-start transition-all duration-300 ${
-                productsData?.items?.length > 0 ? "h-[600px]" : "h-auto"
+              className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 overflow-y-auto pr-2 custom-scroll-container content-start transition-all duration-300 ${
+                productsData?.items?.length > 0
+                  ? "max-h-[610px] h-auto" // h-[600px] o'rniga max-h ishlatamiz
+                  : "h-auto"
               }`}
             >
               {isLoading ? (
-                <div className="col-span-2 py-20 text-center font-black text-slate-200 text-2xl uppercase italic animate-pulse">
+                <div className="col-span-2 py-20 text-center font-black text-slate-200 text-3xl uppercase italic animate-pulse">
                   Загрузка...
                 </div>
               ) : productsData?.items?.length > 0 ? (
@@ -1127,91 +1183,89 @@ const Products = () => {
                   return (
                     <div
                       key={item._id || item.id}
-                      className="flex flex-col justify-between p-5 bg-[#f8fafc] rounded-[28px] border border-transparent hover:border-slate-200 hover:bg-white hover:shadow-xl transition-all group h-[185px] w-full"
+                      className="relative flex flex-col justify-between p-6 bg-white rounded-[32px] border border-slate-50 hover:ring-indigo-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] transition-all duration-500 group h-[185px] w-full hover:-translate-y-1 overflow-hidden"
                     >
                       {/* Card tepasi */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <ProductIcon name={item.title} />
+                      <div className="relative flex items-start justify-between z-10">
+                        <div className="flex items-center gap-4">
+                          <div className="transform group-hover:scale-110 transition-transform duration-500">
+                            <ProductIcon name={item.title} />
+                          </div>
                           <div>
-                            <p className="font-bold text-slate-800 text-[15px] truncate max-w-[120px] lg:max-w-[160px]">
+                            <h3 className="font-black text-slate-800 text-[16px] leading-tight tracking-tight group-hover:text-indigo-600 transition-colors">
                               {item.title}
-                            </p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+                            </h3>
+                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 opacity-80">
                               {item.dateOfPayment}
                             </p>
                           </div>
                         </div>
+
+                        {/* Tugmalar */}
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                           <button
                             onClick={() => openEditModal(item)}
-                            className="p-2.5 bg-white/80 text-indigo-600 rounded-2xl shadow-sm border border-indigo-50 hover:bg-indigo-600 hover:text-white transition-all"
+                            className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all"
                           >
                             <Pencil size={14} strokeWidth={2.5} />
                           </button>
                           <button
                             type="button"
-                            // deleteMutation.isLoading (yoki isPending) vaqtida tugmani muzlatamiz
                             disabled={deleteMutation.isLoading}
                             onClick={(e) => {
                               e.preventDefault();
-                              e.stopPropagation(); // Card'ning o'zi bosilib ketmasligi uchun
                               confirmDelete(item._id || item.id);
                             }}
-                            className={`p-2.5 bg-white/80 text-[#f43f5e] rounded-2xl shadow-sm border border-[#fff1f2] transition-all ${
-                              deleteMutation.isLoading
-                                ? "opacity-50 cursor-not-allowed"
-                                : "hover:bg-[#f43f5e] hover:text-white active:scale-90"
-                            }`}
+                            className="p-2 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all"
                           >
-                            {deleteMutation.isLoading ? (
-                              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Trash2 size={14} strokeWidth={2.5} />
-                            )}
+                            <Trash2 size={14} strokeWidth={2.5} />
                           </button>
                         </div>
                       </div>
+
+                      {/* Gradient chiziq */}
+                      <div className="relative h-px w-full bg-gradient-to-r from-transparent via-slate-100 to-transparent z-10 my-2" />
+
                       {/* Card pastki qismi */}
-                      <div className="mt-1 pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+                      <div className="relative z-10 flex flex-col gap-3">
                         <div className="flex items-center justify-between">
-                          <div className={`px-2.5 py-0.5 rounded-lg`}>
-                            <span
-                              className={`text-[9px] font-black uppercase tracking-widest`}
-                            >
-                              Расход
-                            </span>
-                          </div>
-                          <p className="text-[13px] font-bold text-slate-600">
+                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-[2px]">
+                            Расход
+                          </span>
+                          <p className="text-[12px] font-black text-slate-600 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
                             {item.quantity || 0}{" "}
-                            <span className="text-[9px] text-slate-400">
+                            <span className="text-[10px] text-slate-400 ml-0.5">
                               {item.edinisaIzmereniya?.title || "шт"}
                             </span>
                           </p>
                         </div>
+
                         <div className="flex items-end justify-between">
                           <p className="text-[11px] text-slate-400 font-bold">
-                            <span className="text-[9px] mr-1">Цена:</span>
+                            <span className="text-[9px] mr-1 opacity-60">
+                              Цена:
+                            </span>
                             {item.priceForOne?.toLocaleString()}
                           </p>
-                          <p className="font-black text-base text-slate-800 italic leading-none">
-                            {item.sum?.toLocaleString()}{" "}
-                            <small className="text-[9px] text-slate-400 ml-1 not-italic uppercase">
+                          <p className="font-black text-xl text-slate-800 italic leading-none tracking-tighter">
+                            {item.sum?.toLocaleString()}
+                            <span className="text-[10px] text-indigo-500 ml-1.5 not-italic uppercase">
                               uzs
-                            </small>
+                            </span>
                           </p>
                         </div>
                       </div>
+
+                      {/* Hover indicator (Bottom line) */}
+                      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-1 bg-indigo-500 rounded-t-full transition-all duration-500 group-hover:w-1/3" />
                     </div>
                   );
                 })
               ) : (
-                <div className="col-span-2 py-20 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500">
-                  <div className="relative w-20 h-20 bg-slate-50 rounded-[24px] flex items-center justify-center text-slate-300 border border-slate-100">
-                    <SearchX size={40} strokeWidth={1.5} />
-                  </div>
-                  <h3 className="mt-4 text-slate-800 font-black text-xl uppercase italic">
-                    Ma'lumot topilmadi
+                <div className="col-span-2 py-20 flex flex-col items-center justify-center">
+                  <SearchX size={40} className="text-slate-200" />
+                  <h3 className="mt-4 text-slate-400 font-black text-lg uppercase italic">
+                    Ничего не найдено
                   </h3>
                 </div>
               )}
@@ -1226,7 +1280,7 @@ const Products = () => {
                 <div className="relative">
                   <button
                     onClick={() => setIsOpen(!isOpen)}
-                    className="flex items-center gap-2 bg-white text-slate-500 font-bold text-[11px] py-2 px-4 rounded-xl shadow-sm border border-slate-200 min-w-[140px] justify-between"
+                    className="flex items-center gap-2 bg-white textD-slate-500 font-bold text-[11px] py-2 px-4 rounded-xl shadow-sm border border-slate-200 min-w-[140px] justify-between"
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="uppercase tracking-widest text-[9px] text-slate-400">
@@ -1416,32 +1470,32 @@ const Products = () => {
             {categories.map((cat) => {
               // 1. Funksiya faqat ma'lumotlarni saralab bersin
               const getCategoryDetails = (id, name) => {
-                const lowerName = name.toLowerCase();
+                const lowerName = name?.toLowerCase();
                 if (id === "all")
                   return {
                     icon: <LayoutGrid size={22} />,
                     color: "text-blue-600",
                     bg: "bg-blue-50",
                   };
-                if (lowerName.includes("хоз") || lowerName.includes("uy"))
+                if (lowerName?.includes("хоз") || lowerName?.includes("uy"))
                   return {
                     icon: <Home size={22} />,
                     color: "text-[#059669]",
                     bg: "bg-[#ecfdf5]",
                   };
-                if (lowerName.includes("бан") || lowerName.includes("idish"))
+                if (lowerName?.includes("бан") || lowerName?.includes("idish"))
                   return {
                     icon: <Cylinder size={22} />,
                     color: "text-[#d97706]",
                     bg: "bg-[#fffbeb]",
                   };
-                if (lowerName.includes("сохр") || lowerName.includes("saqlan"))
+                if (lowerName?.includes("сохр") || lowerName?.includes("saqlan"))
                   return {
                     icon: <Bookmark size={22} />,
                     color: "text-[#e11d48]",
                     bg: "bg-[#fff1f2]",
                   };
-                if (lowerName.includes("час") || lowerName.includes("ko'p"))
+                if (lowerName?.includes("час") || lowerName?.includes("ko'p"))
                   return {
                     icon: <RefreshCcw size={22} />,
                     color: "text-[#7c3aed]",
@@ -1542,14 +1596,22 @@ const Products = () => {
             createMutation.mutate({
               ...data,
               user: user?._id || user?.id,
-              category: data.category,
+              // category: data.category, // Buni o'zi data ichida kelsa shart emas
             });
           }}
           units={allUnits}
           categories={categories}
           btnText="Добавить запись"
+          // 🔥 YANGI QO'SHILGAN PROPSLAR
+          productSearch={productSearch}
+          setProductSearch={setProductSearch}
+          isSuggestionsOpen={isSuggestionsOpen}
+          setIsSuggestionsOpen={setIsSuggestionsOpen}
+          searchSuggestions={searchSuggestions}
+          handleSelectProductFromList={handleSelectProductFromList}
         />
       )}
+
       {openEdit && (
         <ModalStructure
           title="Изменить расход"
@@ -1559,6 +1621,13 @@ const Products = () => {
           units={allUnits}
           categories={categories}
           btnText="Сохранить изменения"
+          // 🔥 YANGI QO'SHILGAN PROPSLAR
+          productSearch={productSearch}
+          setProductSearch={setProductSearch}
+          isSuggestionsOpen={isSuggestionsOpen}
+          setIsSuggestionsOpen={setIsSuggestionsOpen}
+          searchSuggestions={searchSuggestions}
+          handleSelectProductFromList={handleSelectProductFromList}
         />
       )}
     </div>
@@ -1574,6 +1643,13 @@ const ModalStructure = ({
   units,
   categories,
   btnText,
+  // 🔥 BU YERGA HAM QO'SHASAN:
+  productSearch,
+  setProductSearch,
+  isSuggestionsOpen,
+  setIsSuggestionsOpen,
+  searchSuggestions,
+  handleSelectProductFromList,
 }) => {
   const {
     register,
@@ -1585,6 +1661,37 @@ const ModalStructure = ({
     "w-full p-4 rounded-2xl bg-slate-50 border outline-none font-bold transition-all";
   const getBorderClass = (fieldName) =>
     errors[fieldName] ? "border-red-500" : "border-slate-200";
+
+  // Funksiya aynan ModalStructure ichida bo'lishi kerak:
+  const onSelect = (item) => {
+    setProductSearch(item.title);
+
+    // Mana endi 'form' aniq ishlaydi!
+    form.setValue("title", item._id, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+
+    if (item.productsCategory) {
+      form.setValue(
+        "productsCategory",
+        item.productsCategory._id || item.productsCategory,
+        { shouldValidate: true }
+      );
+    }
+    if (item.edinisaIzmereniya) {
+      form.setValue(
+        "edinisaIzmereniya",
+        item.edinisaIzmereniya._id || item.edinisaIzmereniya,
+        { shouldValidate: true }
+      );
+    }
+
+    setIsSuggestionsOpen(false);
+  };
+
+  const unitValue = watch("edinisaIzmereniya");
+  const categoryValue = watch("productsCategory");
 
   const ErrorMsg = ({ name }) =>
     errors[name] ? (
@@ -1613,32 +1720,78 @@ const ModalStructure = ({
           className="grid grid-cols-2 gap-5"
         >
           <div className="relative col-span-2 mt-2">
-            {/* 1. Input va Label uchun alohida konteyner */}
-            <div className="relative">
+            <div className="flex flex-col w-full relative">
+              {/* Yashirin input - react-hook-form uchun */}
               <input
-                type="text"
-                id="title"
-                {...register("title", { required: "Введите название" })}
-                placeholder=" "
-                className={`${baseInputClass} peer w-full px-4 py-4 bg-white border-2 border-slate-200 rounded-2xl 
-      text-slate-900 placeholder-transparent focus:outline-none focus:border-blue-500 
-      focus:ring-4 focus:ring-blue-50 transition-all min-h-[58px]`}
+                type="hidden"
+                {...form.register("title", { required: true })}
               />
 
-              <label
-                htmlFor="title"
-                className="absolute left-4 top-[18px] text-slate-400 text-sm transition-all duration-200 
-      pointer-events-none px-1 bg-white
-      /* Fokus bo'lganda yoki yozuv bo'lganda borderga chiqish */
-      peer-focus:-top-2 peer-focus:left-3 peer-focus:text-xs peer-focus:text-blue-600 peer-focus:z-10
-      peer-[:not(:placeholder-shown)]:-top-2 peer-[:not(:placeholder-shown)]:left-3 peer-[:not(:placeholder-shown)]:text-xs peer-[:not(:placeholder-shown)]:z-10"
-              >
-                Название
-              </label>
-            </div>
+              <div className="relative h-[62px]">
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={productSearch}
+                  onChange={(e) => {
+                    setProductSearch(e.target.value);
+                    setIsSuggestionsOpen(true);
+                  }}
+                  onFocus={() => setIsSuggestionsOpen(true)}
+                  placeholder=" "
+                  className="peer w-full h-full px-4 pt-2 bg-white border-2 border-slate-200 rounded-2xl 
+        text-slate-900 font-medium focus:outline-none focus:border-blue-600 
+        focus:ring-4 focus:ring-blue-50 transition-all duration-200"
+                />
 
-            {/* 2. Error xabari alohida divdan tashqarida */}
-            <ErrorMsg name="title" />
+                <label
+                  className="absolute left-3 top-[-10px] bg-white text-blue-700 text-xs font-bold transition-all
+        peer-placeholder-shown:top-[20px] peer-placeholder-shown:left-4 peer-placeholder-shown:text-slate-400 peer-placeholder-shown:text-base peer-placeholder-shown:font-normal
+        peer-focus:top-[-10px] peer-focus:left-3 peer-focus:text-blue-600 peer-focus:text-xs peer-focus:font-bold"
+                >
+                  Название
+                </label>
+              </div>
+
+              {/* Dropdown - Tanlanganda yopiladigan va inputni to'ldiradigan qismi */}
+              {isSuggestionsOpen && productSearch.length > 0 && (
+                <div className="absolute top-[65px] left-0 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl z-[9999] py-2">
+                  {searchSuggestions.length > 0 ? (
+                    searchSuggestions.map((item) => (
+                      <div
+                        key={item._id}
+                        onClick={() => {
+                          // 1. Formani ID lar bilan to'ldirish
+                          handleSelectProductFromList(item);
+
+                          // 2. Input ichidagi textni tanlangan mahsulot nomiga o'zgartirish
+                          setProductSearch(item.title);
+
+                          // 3. Yordamchi oynani (Dropdown) yopish
+                          setIsSuggestionsOpen(false);
+                        }}
+                        className="px-5 py-3 hover:bg-blue-50 cursor-pointer flex justify-between items-center group transition-all"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-700 group-hover:text-blue-600">
+                            {item.title}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {item.productsCategory?.title || "Без категории"}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-black text-blue-500 bg-blue-50 px-2 py-1 rounded-md">
+                          {item.edinisaIzmereniya?.title || "шт"}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-5 py-4 text-slate-400 italic text-sm">
+                      Ничего не найдено...
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           <div className="relative mt-2">
             {/* 1. Input va Labelni alohida divga o'raymiz (bu muhim!) */}
@@ -1662,7 +1815,7 @@ const ModalStructure = ({
 
               <label
                 htmlFor="dateOfPayment"
-                className="absolute left-4 top-[18px] text-slate-400 text-sm transition-all duration-200 
+                className="absolute left-4 top-[18px] text-blue-700 text-sm transition-all duration-200 
       pointer-events-none px-1 bg-white
       /* Fokus bo'lganda yoki yozuv bo'lganda borderga chiqish */
       peer-focus:-top-2 peer-focus:left-3 peer-focus:text-xs peer-focus:text-blue-600 peer-focus:z-10
@@ -1675,52 +1828,43 @@ const ModalStructure = ({
             {/* ErrorMsg inputning dividan tashqarida bo'lishi kerak */}
             <ErrorMsg name="dateOfPayment" />
           </div>
-          <div className="relative mt-2">
-            <div className="relative">
+          <div className="relative">
+            <div className="relative h-full">
               <select
                 {...register("edinisaIzmereniya", {
                   required: "Выберите ед.изм.",
                 })}
-                defaultValue="" // ❗ bo‘sh
-                className="peer w-full px-4 py-3 pr-10 bg-white border-2 border-slate-200 
-      rounded-2xl appearance-none outline-none transition-all cursor-pointer
-      text-slate-900
-      focus:border-blue-500 focus:ring-4 focus:ring-blue-50 hover:border-slate-300"
+                value={unitValue || ""}
+                className="peer w-full h-full px-4 py-3 pr-10 bg-white border-2 border-slate-200 rounded-2xl appearance-none outline-none focus:border-blue-500 transition-all text-slate-900 cursor-pointer min-h-[54px]"
               >
-                {/* 🔥 FAKE DEFAULT */}
                 <option value="" disabled hidden>
-                  шт
+                  Выберите...
                 </option>
 
-                {units.map((unit) => (
-                  <option key={unit._id} value={unit._id}>
-                    {unit.title}
+                {units.map((u) => (
+                  <option key={u._id} value={u._id}>
+                    {u.title}
                   </option>
                 ))}
               </select>
 
-              {/* FLOATING LABEL */}
-              <label
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 
-      transition-all duration-200 pointer-events-none px-1 bg-white
-      peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-blue-600
-      peer-valid:top-0 peer-valid:-translate-y-1/2 peer-valid:text-xs peer-valid:text-blue-600"
-              >
+              <label className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-blue-700 transition-all duration-200 pointer-events-none px-1 bg-white peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-blue-600 peer-[:not([value='']):not(:focus)]:top-0 peer-[:not([value='']):not(:focus)]:-translate-y-1/2 peer-[:not([value='']):not(:focus)]:text-xs">
                 Ед. изм.
               </label>
 
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 peer-focus:text-blue-500 transition-colors">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
                   className="w-5 h-5"
-                  viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  viewBox="0 0 24 24"
                 >
-                  <path d="M6 9l6 6 6-6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2.5"
+                    d="M6 9l6 6 6-6"
+                  />
                 </svg>
               </div>
             </div>
@@ -1728,52 +1872,44 @@ const ModalStructure = ({
             <ErrorMsg name="edinisaIzmereniya" />
           </div>
           <div className="col-span-2 relative group">
-            {/* Label (border ustida) */}
-            <label
-              className="absolute -top-2 left-4 bg-white px-1 text-xs text-slate-500
-    transition-colors text-blue-600 z-10"
-            >
-              Категория
-            </label>
-
             <div className="relative">
               <select
                 {...register("productsCategory", {
                   required: "Выберите категорию",
                 })}
-                defaultValue=""
-                className="w-full appearance-none bg-slate-50 border-2 border-slate-200
-      rounded-2xl px-4 py-3 pr-10 text-slate-700 font-medium
-      focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100
-      outline-none transition-all cursor-pointer hover:border-slate-300"
+                value={categoryValue || ""}
+                className="peer w-full px-4 py-3 pr-10 bg-white border-2 border-slate-200 rounded-2xl appearance-none outline-none focus:border-blue-500 transition-all text-slate-900 font-medium cursor-pointer"
               >
                 <option value="" disabled hidden>
                   Выберите...
                 </option>
 
                 {categories
-                  .filter((cat) => cat.id !== "all")
-                  .map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
+                  ?.filter((c) => c._id !== "all")
+                  .map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.title}
                     </option>
                   ))}
               </select>
 
-              {/* Arrow */}
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+              <label className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-blue-700 transition-all duration-200 pointer-events-none px-1 bg-white peer-focus:top-0 peer-focus:-translate-y-1/2 peer-focus:text-xs peer-focus:text-blue-600 peer-[:not([value='']):not(:focus)]:top-0 peer-[:not([value='']):not(:focus)]:-translate-y-1/2 peer-[:not([value='']):not(:focus)]:text-xs">
+                Категория
+              </label>
+
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  viewBox="0 0 24 24"
                 >
-                  <path d="m6 9 6 6 6-6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2.5"
+                    d="m6 9 6 6 6-6"
+                  />
                 </svg>
               </div>
             </div>
@@ -1797,7 +1933,7 @@ const ModalStructure = ({
 
               {/* FLOATING LABEL */}
               <label
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-blue-700 
       transition-all duration-200 pointer-events-none
       bg-white px-1
       /* Fokus bo'lganda borderga chiqishi */
@@ -1833,7 +1969,7 @@ const ModalStructure = ({
               {/* Floating Label - Borderning qoq ustiga chiqadigan variant */}
               <label
                 htmlFor="price"
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm transition-all duration-200 
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-700 text-sm transition-all duration-200 
         pointer-events-none px-1 bg-transparent
         /* Fokus bo'lgandagi holat */
         peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:left-3 peer-focus:text-[11px] peer-focus:text-blue-600 peer-focus:bg-white peer-focus:z-10

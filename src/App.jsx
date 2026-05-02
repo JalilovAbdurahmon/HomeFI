@@ -9,6 +9,7 @@ import Prochee from "./pages/Prochee-Papka/Prochee";
 import FormirovaniyaZakupa from "./pages/FormirovaniyaZakupa";
 import CommunalAll from "./pages/Communal-Papka/CommunalAll";
 import Register from "./pages/Register";
+import ProfileSettings from "./pages/ProfileSettings";
 
 const App = () => {
   return (
@@ -23,6 +24,7 @@ const App = () => {
           <Route path="/products" element={<Products />} />
           <Route path="/prochee" element={<Prochee />} />
           <Route path="/formirovaniyaZakupa" element={<FormirovaniyaZakupa />} />
+          <Route path="/profileSettings" element={<ProfileSettings />}/>
         </Route>
       </Routes>
     </div>
