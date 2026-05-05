@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import {
@@ -169,6 +169,57 @@ const IncomePage = () => {
     enabled: titleProducts.length >= 0, // titleProducts bo'lmasa ham ishlaydi
   });
 
+  const products = productsData?.items || [];
+
+  const processedIncomes = useMemo(() => {
+    const result = [];
+    
+    // 1. Ma'lumot borligini tekshiramiz
+    const allProducts = productsData?.items || [];
+  
+    allProducts.forEach(product => {
+      // 2. Kirimlar (Income) va Chiqimlarni (Expense) ajratamiz
+      // 'income' so'zi bazada qanday yozilganiga e'tibor ber (kichik yoki katta harf)
+      const history = product.history || [];
+      const incomes = history.filter(h => h.type?.toLowerCase() === 'income');
+      const expenses = history.filter(h => h.type?.toLowerCase() === 'expense');
+  
+      // 3. Jami xarajat miqdori
+      const totalExpenseQty = expenses.reduce((sum, h) => sum + (Number(h.quantity) || 0), 0);
+  
+      let tempExpense = totalExpenseQty;
+  
+      // 4. FIFO (Birinchi kirgan birinchi chiqadi)
+      incomes.forEach(inc => {
+        let currentQty = Number(inc.quantity) || 0;
+  
+        if (tempExpense > 0) {
+          if (currentQty <= tempExpense) {
+            tempExpense -= currentQty;
+            currentQty = 0;
+          } else {
+            currentQty -= tempExpense;
+            tempExpense = 0;
+          }
+        }
+  
+        // Faqat qoldig'i 0 dan katta bo'lgan kirimlarni natijaga qo'shamiz
+        if (currentQty > 0) {
+          result.push({
+            ...inc,
+            remainingQty: currentQty,
+            // Agar pastda title chiqmayotgan bo'lsa, buni tekshir:
+            displayTitle: product.title?.title || product.title || "Без названия",
+            categoryName: product.productsCategory?.title || "Общее",
+            measurementUnit: product.edinisaIzmereniya?.title || "ед"
+          });
+        }
+      });
+    });
+  
+    return result;
+  }, [productsData]);
+
   // ✅ DELETE — faqat income uchun, o'z toastId bilan
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
@@ -191,16 +242,17 @@ const IncomePage = () => {
     },
   });
 
-  // ✅ UPDATE mutation
+  // ✅ UPDATE mutation (Eng ishonchli variant)
   const updateMutation = useMutation({
-    mutationFn: async (data) =>
-      await instance.put(
-        `/products/${editingProduct._id || editingProduct.id}`,
-        data
-      ),
+    // Mutatsiyaga obyekt sifatida {id, ...rest} yuboramiz
+    mutationFn: async ({ id, ...payload }) => {
+      return await instance.put(`/products/${id}`, payload);
+    },
     onSuccess: async () => {
+      // Keshni tozalash
       await queryClient.invalidateQueries({ queryKey: ["productsIncome"] });
       await queryClient.invalidateQueries({ queryKey: ["products"] });
+
       toast.success("Данные успешно обновлены", {
         style: { borderRadius: "16px", background: "#1e293b", color: "#fff" },
       });
@@ -265,7 +317,9 @@ const IncomePage = () => {
     setEditingProduct(product);
     const titleText = product.title?.title || product.title || "";
     setProductSearch(titleText);
-    updateForm.reset({
+
+    // Ma'lumotlarni tayyorlab olamiz
+    const formData = {
       title: product.title?._id || product.title,
       dateOfPayment: product.dateOfPayment,
       edinisaIzmereniya:
@@ -274,8 +328,11 @@ const IncomePage = () => {
         product.productsCategory?._id || product.productsCategory,
       quantity: product.quantity,
       priceForOne: product.priceForOne,
-      type: "income", // ✅ Har doim income bo'lib saqlanadi
-    });
+      type: "income",
+    };
+
+    // Reset qilamiz
+    updateForm.reset(formData);
     setOpenEdit(true);
   };
 
@@ -286,19 +343,25 @@ const IncomePage = () => {
     setProductSearch("");
   };
 
+  // ✅ Formani yuborish funksiyasi
   const handleUpdateSubmit = (data) => {
-    if (!updateForm.formState.isDirty) {
-      toast("Данные не изменены", {
-        icon: "ℹ️",
-        style: { borderRadius: "16px" },
-      });
-      closeEditModal();
+    // 1. Foydalanuvchini olish
+    const userStr = localStorage.getItem("user");
+    const user = userStr ? JSON.parse(userStr) : null;
+
+    // 2. ID ni aniqlash (editingProduct'dan aniq olamiz)
+    const productId = editingProduct?._id || editingProduct?.id;
+
+    if (!productId) {
+      toast.error("Mahsulot IDsi topilmadi");
       return;
     }
-    const user = JSON.parse(localStorage.getItem("user"));
+
+    // 3. Mutatsiyani chaqirish
     updateMutation.mutate({
-      ...data,
-      type: "income", // ✅ Update qilganda ham income saqlanadi
+      id: productId, // ID alohida yuboriladi
+      ...data, // Formadagi barcha inputlar
+      type: "income",
       user: user?._id || user?.id,
     });
   };
@@ -325,8 +388,6 @@ const IncomePage = () => {
         Yuklanmoqda...
       </div>
     );
-
-  const products = productsData?.items || [];
 
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
@@ -524,7 +585,7 @@ const IncomePage = () => {
                             setSelectedProduct(item);
                             setOpenHistory(true);
                           }}
-                          className="p-2.5 bg-white shadow-sm border border-slate-100 text-slate-600 rounded-xl hover:bg-slate-800 hover:text-white transition-all"
+                          className="p-2.5 bg-white hover:bg-blue-gray-900 hover:text-white shadow-sm border border-slate-100 text-slate-600 rounded-xl hover:bg-slate-800 transition-all"
                         >
                           <ReceiptText size={18} />
                         </button>
@@ -569,88 +630,127 @@ const IncomePage = () => {
       </div>
 
       {openHistory && selectedProduct && (
-  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-300">
-    <div className="bg-white w-[450px] rounded-[35px] p-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden">
-      
-      {/* DEKORATIV FON */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 z-0" />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-300">
+          <div className="bg-white w-[450px] rounded-[35px] p-8 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden">
+            {/* DEKORATIV FON */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -mr-16 -mt-16 z-0" />
 
-      {/* HEADER */}
-      <div className="relative z-10 flex justify-between items-start mb-6">
-        <div>
-          <h2 className="font-black text-2xl text-slate-800 leading-tight tracking-tighter uppercase italic">
-            {selectedProduct.title?.title || selectedProduct.title}
-          </h2>
-          <div className="flex items-center gap-2 mt-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-              Текущий остаток: <span className="text-blue-600">{selectedProduct.quantity} шт</span>
-            </p>
-          </div>
-        </div>
-        <button 
-          onClick={() => setOpenHistory(false)}
-          className="p-2 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
-      </div>
+            {/* HEADER */}
+            <div className="relative z-10 flex justify-between items-start mb-6">
+              <div>
+                <h2 className="font-black text-2xl text-slate-800 leading-tight tracking-tighter uppercase italic">
+                  {(() => {
+                    // Sening mantiqingni aynan shu yerga ko'chirib o'tamiz
+                    const item = selectedProduct;
+                    if (!item) return "Yuklanmoqda...";
 
-      {/* HISTORY LIST */}
-      <div className="relative z-10 flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-2 custom-scroll">
-        {historyList?.length > 0 ? (
-          historyList.map((h, idx) => (
-            <div
-              key={h._id || idx}
-              className="group bg-slate-50/50 border border-slate-100 rounded-[24px] p-4 flex justify-between items-center hover:bg-white hover:shadow-md hover:border-blue-100 transition-all duration-300"
-            >
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-black text-blue-500 uppercase tracking-[2px]">Приход</span>
-                <span className="text-[13px] font-bold text-slate-700">{h.dateOfPayment}</span>
-                {h.priceForOne && (
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    По {h.priceForOne.toLocaleString()} UZS
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-4">
-                {/* LOGIKA: OLDIN -> QOSHILDI -> KEYIN */}
-                <div className="flex flex-col items-end">
-                   <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-[10px] font-bold text-slate-300 uppercase">было</span>
-                      <span className="text-[12px] font-black text-slate-400">{h.before || 0}</span>
-                   </div>
-                   
-                   <div className="bg-green-100 px-2 py-0.5 rounded-lg mb-1">
-                      <span className="text-[14px] font-black text-green-600">+{h.change}</span>
-                   </div>
-
-                   <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-blue-400 uppercase">стало</span>
-                      <span className="text-[16px] font-black text-slate-800 italic">{h.after}</span>
-                   </div>
+                    return typeof item.title === "object" && item.title !== null
+                      ? item.title?.title || "Bez nomi"
+                      : titleProducts.find((p) => p._id === item.title)
+                          ?.title ||
+                          item.title ||
+                          "Bez nomi";
+                  })()}
+                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                    Текущий остаток:{" "}
+                    <span className="text-blue-600">
+                      {selectedProduct.quantity} шт
+                    </span>
+                  </p>
                 </div>
               </div>
+              <button
+                onClick={() => setOpenHistory(false)}
+                className="p-2 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
             </div>
-          ))
-        ) : (
-          <div className="py-10 text-center text-slate-300 font-black uppercase italic text-sm">
-            История пуста
-          </div>
-        )}
-      </div>
 
-      {/* FOOTER BUTTON */}
-      <button
-        onClick={() => setOpenHistory(false)}
-        className="relative z-10 mt-6 w-full bg-slate-900 text-white py-4 rounded-[20px] font-black text-[12px] uppercase tracking-[2px] shadow-lg shadow-slate-200 hover:bg-blue-600 hover:shadow-blue-200 transition-all active:scale-[0.98]"
-      >
-        Закрыть окно
-      </button>
-    </div>
-  </div>
-)}
+            {/* HISTORY LIST */}
+            <div className="relative z-10 flex flex-col gap-3 max-h-[420px] overflow-y-auto pr-2 custom-scroll">
+              {historyList?.length > 0 ? (
+                historyList.map((h, idx) => (
+                  <div
+                    key={h._id || idx}
+                    className="group bg-slate-50/50 border border-slate-100 rounded-[24px] p-4 flex justify-between items-center hover:bg-white hover:shadow-md hover:border-blue-100 transition-all duration-300"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-black text-blue-500 uppercase tracking-[2px]">
+                        Приход
+                      </span>
+                      <span className="text-[13px] font-bold text-slate-700">
+                        {h.dateOfPayment}
+                      </span>
+                      {h.priceForOne && (
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          По {h.priceForOne.toLocaleString()} UZS
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      {/* LOGIKA: OLDIN -> QOSHILDI -> KEYIN */}
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[10px] font-bold text-slate-300 uppercase">
+                            было
+                          </span>
+                          <span className="text-[12px] font-black text-slate-400">
+                            {h.before || 0}
+                          </span>
+                        </div>
+
+                        <div className="bg-green-100 px-2 py-0.5 rounded-lg mb-1">
+                          <span className="text-[14px] font-black text-green-600">
+                            +{h.change}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-blue-400 uppercase">
+                            стало
+                          </span>
+                          <span className="text-[16px] font-black text-slate-800 italic">
+                            {h.after}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-10 text-center text-slate-300 font-black uppercase italic text-sm">
+                  История пуста
+                </div>
+              )}
+            </div>
+
+            {/* FOOTER BUTTON */}
+            <button
+              onClick={() => setOpenHistory(false)}
+              className="relative z-10 mt-6 w-full bg-[#0f172a] text-white py-4 rounded-[20px] font-black text-[12px] uppercase tracking-[2px] shadow-lg shadow-[#e2e8f0] hover:bg-blue-600 hover:shadow-blue-200 transition-all active:scale-[0.98]"
+            >
+              Закрыть окно
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ✅ EDIT MODAL — shu sahifada render bo'ladi */}
       {openEdit && (

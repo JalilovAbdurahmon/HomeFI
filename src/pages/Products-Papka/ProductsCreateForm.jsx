@@ -37,11 +37,17 @@ const ModalStructure = ({
   // Tanlangan mahsulot ID-sini kuzatib boramiz
   const watchedProductId = watch("title");
 
-  // Sana mantiqi
   useEffect(() => {
     const currentDate = watch("dateOfPayment");
     if (!currentDate) {
-      const today = new Date().toISOString().split("T")[0];
+      const now = new Date();
+      // Mahalliy vaqtni hisobga olgan holda YYYY-MM-DD formatini yasash
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+
+      const today = `${year}-${month}-${day}`;
+
       setValue("dateOfPayment", today);
     }
   }, [setValue, watch]);
@@ -254,11 +260,15 @@ const ModalStructure = ({
 
           {/* 2. KATEGORIYA VA BIRLIK */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            {/* Kategoriya */}
+            <div className="cursor-not-allowed">
+              {" "}
+              {/* Kursorni shu yerga qo'yamiz */}
               <label className={labelClass}>Kategoriya</label>
               <select
                 {...register("productsCategory", { required: true })}
-                className={inputClass}
+                className={`${inputClass} pointer-events-none bg-gray-100`} // Bosishni o'chiramiz
+                tabIndex={-1}
               >
                 <option value="">Tanlang</option>
                 {categories
@@ -270,11 +280,16 @@ const ModalStructure = ({
                   ))}
               </select>
             </div>
-            <div>
+
+            {/* Birlik */}
+            <div className="cursor-not-allowed">
+              {" "}
+              {/* Kursorni shu yerga qo'yamiz */}
               <label className={labelClass}>Birlik</label>
               <select
                 {...register("edinisaIzmereniya", { required: true })}
-                className={inputClass}
+                className={`${inputClass} pointer-events-none bg-gray-100`}
+                tabIndex={-1}
               >
                 <option value="">Tanlang</option>
                 {units.map((u) => (

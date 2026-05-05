@@ -458,15 +458,34 @@ const Products = () => {
   const lowStockAlerts = useMemo(() => {
     if (!allProductsRaw.length) return [];
     const totals = {};
+
     allProductsRaw.forEach((item) => {
-      const name = getItemName(item);
-      if (!totals[name]) totals[name] = 0;
-      if (item.type === "income") totals[name] += Number(item.quantity || 0);
-      else totals[name] -= Number(item.quantity || 0);
+      // ID ni kalit sifatida olamiz (bu juda muhim!)
+      const titleKey =
+        typeof item.title === "object" ? item.title?._id : item.title;
+
+      if (!titleKey) return;
+
+      if (!totals[titleKey]) {
+        totals[titleKey] = {
+          title: item.title, // Asl title ma'lumotini saqlab qolamiz
+          quantity: 0,
+        };
+      }
+
+      if (item.type === "income") {
+        totals[titleKey].quantity += Number(item.quantity || 0);
+      } else {
+        totals[titleKey].quantity -= Number(item.quantity || 0);
+      }
     });
-    return Object.entries(totals)
-      .filter(([name, count]) => count > 0 && count <= 5)
-      .map(([name, count]) => ({ name, count }));
+
+    return Object.values(totals)
+      .filter((obj) => obj.quantity > 0 && obj.quantity <= 5)
+      .map((obj) => ({
+        title: obj.title,
+        count: obj.quantity,
+      }));
   }, [allProductsRaw]);
 
   const totalExpense = useMemo(() => {
@@ -1106,50 +1125,114 @@ const Products = () => {
             {/* LOW STOCK ALERTS */}
             {lowStockAlerts && lowStockAlerts.length > 0 && (
               <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-                <div className="flex items-center gap-2 mb-4 ml-1">
-                  <div className="w-2 h-6 bg-red-500 rounded-full" />
-                  <h2 className="text-sm font-black uppercase italic text-slate-800 tracking-wider">
-                    Товары, которые заканчиваются
-                  </h2>
-                  <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded-lg uppercase">
-                    {lowStockAlerts.length} позиций
+                {/* HEADER */}
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-8 bg-gradient-to-b from-red-500 to-orange-400 rounded-full" />
+
+                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
+                      Товары на исходе
+                    </h2>
+                  </div>
+
+                  <span className="px-3 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded-full border border-red-100">
+                    {lowStockAlerts.length} alert
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {lowStockAlerts.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="group relative bg-white p-4 rounded-[28px] border border-red-50 shadow-sm hover:shadow-md hover:border-red-200 transition-all duration-300 overflow-hidden"
-                    >
-                      <div className="absolute -right-4 -bottom-4 w-12 h-12 bg-red-50 rounded-full group-hover:scale-150 transition-transform duration-500" />
-                      <div className="relative z-10 flex justify-between items-center">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-[8px] font-black text-red-500 uppercase tracking-widest">
-                            Внимание
-                          </span>
-                          <h3 className="text-[14px] font-black text-slate-800 leading-tight truncate max-w-[120px]">
-                            {item.name}
-                          </h3>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-xl font-black text-slate-900 italic">
-                              {item.count}
-                            </span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">
-                              шт
-                            </span>
+
+                {/* GRID - Kenglikni oshirish uchun lg:grid-cols-3 qildik (4 tadan 3 taga kamaytirish cardni kengaytiradi) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {lowStockAlerts.map((item, idx) => {
+                    const name =
+                      typeof item.title === "object"
+                        ? item.title?.title
+                        : titleProducts?.find((p) => p._id === item.title)
+                            ?.title ||
+                          item.title ||
+                          "Без названия";
+
+                    const percent = Math.min((item.count / 5) * 100, 100);
+
+                    return (
+                      <div
+                        key={idx}
+                        className="relative group rounded-[26px] p-[1px] bg-gradient-to-br from-red-200 via-white to-orange-100 shadow-sm hover:shadow-xl transition-all duration-300 min-w-[280px]"
+                      >
+                        {/* INNER CARD */}
+                        <div className="relative bg-white rounded-[25px] p-5 overflow-hidden">
+                          {" "}
+                          {/* p-4 dan p-5 ga oshirildi ichki joy uchun */}
+                          {/* content */}
+                          <div className="flex justify-between items-center relative z-10 gap-3">
+                            {/* LEFT */}
+                            <div className="flex flex-col gap-1 flex-1">
+                              <span className="text-[10px] font-black text-red-500 tracking-widest uppercase">
+                                Предупреждение
+                              </span>
+
+                              <h3 className="text-[15px] font-black text-slate-800 leading-tight truncate">
+                                {name}
+                              </h3>
+
+                              <span className="text-[12px] font-medium text-slate-400">
+                                запас низкий
+                              </span>
+                            </div>
+
+                            {/* RIGHT - Dumaloqni kichraytirdik */}
+                            <div className="flex flex-col items-center shrink-0">
+                              <div className="relative w-10 h-10">
+                                {" "}
+                                {/* w-12 dan w-10 ga kichraydi */}
+                                <svg className="w-10 h-10 -rotate-90">
+                                  <circle
+                                    cx="20"
+                                    cy="20"
+                                    r="17"
+                                    stroke="#f1f1f1"
+                                    strokeWidth="3.5"
+                                    fill="none"
+                                  />
+                                  <circle
+                                    cx="20"
+                                    cy="20"
+                                    r="17"
+                                    stroke="#ef4444"
+                                    strokeWidth="3.5"
+                                    fill="none"
+                                    strokeDasharray={
+                                      107
+                                    } /* Radius 17 bo'lgani uchun o'zgardi (2 * PI * 17) */
+                                    strokeDashoffset={
+                                      107 - (107 * percent) / 100
+                                    }
+                                    strokeLinecap="round"
+                                    className="transition-all duration-700"
+                                  />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <span className="text-[11px] font-black text-slate-800">
+                                    {item.count}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <span className="text-[10px] text-slate-400 font-bold mt-1 uppercase">
+                                шт
+                              </span>
+                            </div>
                           </div>
-                          <div className="w-12 h-1 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                          {/* bottom hint bar */}
+                          <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-red-500 transition-all duration-1000"
-                              style={{ width: `${(item.count / 5) * 100}%` }}
+                              className="h-full bg-gradient-to-r from-red-500 to-orange-400 transition-all duration-700"
+                              style={{ width: `${percent}%` }}
                             />
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1247,44 +1330,28 @@ const Products = () => {
                         <div className="relative h-px w-full bg-gradient-to-r from-transparent via-slate-100 to-transparent z-10 my-2" />
 
                         <div className="relative z-10 flex flex-col gap-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="flex flex-col items-center bg-red-50 px-2.5 py-1.5 rounded-xl border border-red-100">
-                                <span className="text-[8px] font-black text-red-400 uppercase tracking-widest leading-none mb-0.5">
-                                  Использовано
-                                </span>
-                                <span className="text-[15px] font-black text-red-500 italic leading-none">
+                          <div className="flex justify-end mt-2">
+                            {" "}
+                            {/* O'ng tarafga taqash uchun justify-end */}
+                            <div className="flex items-center gap-2 bg-red-50/60 px-3 py-1.5 rounded-xl border border-red-100 shadow-sm">
+                              {/* Label */}
+                              <span className="text-[9px] font-black text-red-400 uppercase tracking-tighter border-r border-red-200 pr-2 leading-none">
+                                Использовано
+                              </span>
+
+                              {/* Qiymat va Birlik */}
+                              <div className="flex items-center gap-1 pl-1">
+                                <span className="text-[16px] font-black text-red-500 italic leading-none">
                                   -{usedQty}
                                 </span>
-                              </div>
-                              <div
-                                className={`flex flex-col items-center px-2.5 py-1.5 rounded-xl border ${
-                                  ostatokValue >= 0
-                                    ? "bg-emerald-50 border-emerald-100"
-                                    : "bg-orange-50 border-orange-100"
-                                }`}
-                              >
-                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">
-                                  Остаток
-                                </span>
-                                <span
-                                  className={`text-[15px] font-black italic leading-none ${
-                                    ostatokValue >= 0
-                                      ? "text-emerald-600"
-                                      : "text-orange-500"
-                                  }`}
-                                >
-                                  {ostatokValue}
+                                <span className="text-[9px] ml-1 mt-1.5 font-bold text-slate-500 uppercase leading-none">
+                                  {item.edinisaIzmereniya?.title || "шт"}
                                 </span>
                               </div>
-                            </div>
 
-                            <p className="text-[12px] font-black text-slate-600 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
-                              {item.quantity || 0}{" "}
-                              <span className="text-[10px] text-slate-400 ml-0.5">
-                                {item.edinisaIzmereniya?.title || "шт"}
-                              </span>
-                            </p>
+                              {/* Kichkina vizual nuqta (ixtiyoriy, oxiri ekanini bildiradi) */}
+                              <div className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse ml-1" />
+                            </div>
                           </div>
 
                           <div className="flex items-end justify-between">
