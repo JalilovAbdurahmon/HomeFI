@@ -10,6 +10,7 @@ import FormirovaniyaZakupa from "./pages/FormirovaniyaZakupa";
 import CommunalAll from "./pages/Communal-Papka/CommunalAll";
 import Register from "./pages/Register";
 import ProfileSettings from "./pages/ProfileSettings";
+import IncomePage from "./pages/Products-Papka/ProductsIncome";
 
 const App = () => {
   return (
@@ -25,6 +26,7 @@ const App = () => {
           <Route path="/prochee" element={<Prochee />} />
           <Route path="/formirovaniyaZakupa" element={<FormirovaniyaZakupa />} />
           <Route path="/profileSettings" element={<ProfileSettings />}/>
+          <Route path="/productsIncome" element={<IncomePage />}/>
         </Route>
       </Routes>
     </div>

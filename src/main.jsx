@@ -20,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <ToastContainer
             position="top-center" // O'rtada chiqsa ko'proq e'tibor tortadi
             autoClose={2000}
+            limit={1} // Ekranda bir vaqtning o'zida faqat BITTA toast bo'lishini ta'minlaydi
             hideProgressBar={false}
             newestOnTop={false}
             closeOnClick
