@@ -119,7 +119,7 @@ const Register = () => {
                   <input
                     {...register("username", { required: true })}
                     type="text"
-                    placeholder="Абдурахмон"
+                    placeholder="Имя пользователя"
                     className="w-full bg-gray-800/50 border border-gray-700 text-white rounded-xl py-3 pl-10 pr-4 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all placeholder:text-gray-600"
                   />
                 </div>

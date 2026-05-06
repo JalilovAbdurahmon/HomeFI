@@ -753,22 +753,33 @@ const Products = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => openAddModal("expense")}
-            className="group relative flex items-center gap-3 bg-gradient-to-br from-[#ef4444] via-[#dc2626] to-[#b91c1c] text-white px-6 py-4 rounded-[20px] font-black tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-[0_10px_20px_-5px_rgba(220,38,38,0.4)]"
+            className="group relative flex items-center gap-3 bg-gradient-to-br from-[#4f46e5] via-[#3730a3] to-[#1e1b4b]q text-white px-6 py-4 rounded-[20px] font-black tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-[0_10px_20px_-5px_rgba(220,38,38,0.4)]"
           >
             <div className="relative flex items-center justify-center bg-white/20 p-1.5 rounded-xl group-hover:rotate-90 transition-transform duration-500">
               <TrendingDown size={18} strokeWidth={3} />
             </div>
-            <span className="relative drop-shadow-md text-sm">РАСХОД</span>
+            <span className="relative drop-shadow-md text-sm">
+              Добавить чек
+            </span>
           </button>
-          <button
-            onClick={() => openAddModal("income")}
-            className="group relative flex items-center gap-3 bg-gradient-to-br from-green-500 via-green-600 to-green-700 text-white px-6 py-4 rounded-[20px] font-black tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_15px_30px_-5px_rgba(34,197,94,0.4)] active:scale-95 shadow-[0_10px_20px_-5px_rgba(34,197,94,0.3)]"
-          >
-            <div className="relative flex items-center justify-center bg-white/20 p-1.5 rounded-xl group-hover:rotate-90 transition-transform duration-500">
-              <TrendingUp size={18} strokeWidth={3} />
-            </div>
-            <span className="relative drop-shadow-md text-sm">ПРИХОД</span>
-          </button>
+          {/* <button
+              onClick={() => openAddModal("expense")}
+              className="group relative flex items-center gap-3 bg-gradient-to-br from-[#ef4444] via-[#dc2626] to-[#b91c1c] text-white px-6 py-4 rounded-[20px] font-black tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-[0_10px_20px_-5px_rgba(220,38,38,0.4)]"
+            >
+              <div className="relative flex items-center justify-center bg-white/20 p-1.5 rounded-xl group-hover:rotate-90 transition-transform duration-500">
+                <TrendingDown size={18} strokeWidth={3} />
+              </div>
+              <span className="relative drop-shadow-md text-sm">РАСХОД</span>
+            </button> */}
+          {/* <button
+              onClick={() => openAddModal("income")}
+              className="group relative flex items-center gap-3 bg-gradient-to-br from-green-500 via-green-600 to-green-700 text-white px-6 py-4 rounded-[20px] font-black tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_15px_30px_-5px_rgba(34,197,94,0.4)] active:scale-95 shadow-[0_10px_20px_-5px_rgba(34,197,94,0.3)]"
+            >
+              <div className="relative flex items-center justify-center bg-white/20 p-1.5 rounded-xl group-hover:rotate-90 transition-transform duration-500">
+                <TrendingUp size={18} strokeWidth={3} />
+              </div>
+              <span className="relative drop-shadow-md text-sm">ПРИХОД</span>
+            </button> */}
         </div>
       </div>
 
@@ -1490,13 +1501,17 @@ const Products = () => {
                       <HistoryIcon size={20} />
                     </div>
                     <div>
+                      {/* // ✅ TO'G'RI — titleProducts dan nom topadi */}
                       <h3 className="font-black text-slate-800 uppercase italic">
-                        {historyModalItem.title?.title ||
-                          historyModalItem.title}
+                        {typeof historyModalItem.title === "object"
+                          ? historyModalItem.title?.title
+                          : titleProducts.find(
+                              (p) => p._id === historyModalItem.title
+                            )?.title || historyModalItem.title}
                       </h3>
                       {movements.length > 0 && (
                         <p className="text-[11px] font-bold text-slate-400 mt-0.5">
-                          Hozirgi qoldiq:{" "}
+                          Текущий баланс:{" "}
                           <span
                             className={`font-black ${
                               movements[0]?.balanceAfter >= 0
@@ -1504,7 +1519,8 @@ const Products = () => {
                                 : "text-orange-500"
                             }`}
                           >
-                            {movements[0]?.balanceAfter ?? 0} шт
+                            {movements[0]?.balanceAfter ?? 0}{" "}
+                            {movements[0]?.edinisaIzmereniya?.title || "шт"}
                           </span>
                         </p>
                       )}
@@ -1565,7 +1581,7 @@ const Products = () => {
                             <div className="flex items-center gap-3">
                               <div className="text-center">
                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-                                  Олдин
+                                  Было
                                 </p>
                                 <p className="text-[13px] font-black text-slate-500 leading-none">
                                   {move.balanceBefore}
@@ -1825,15 +1841,15 @@ const Products = () => {
             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest ml-1 shrink-0">
               Выберите период:
             </p>
-            <div className="flex gap-2 p-1.5 bg-black/40 rounded-2xl border border-white/5 w-fit">
+            <div className="flex gap-2 p-1.5 bg-black/40 rounded-2xl border-white/5 w-fit">
               {[1, 3, 6, 12].map((range) => (
                 <button
                   key={range}
                   onClick={() => setActiveRange(range)}
                   className={`px-5 py-2 rounded-[14px] text-[10px] font-black transition-all duration-300 whitespace-nowrap ${
                     activeRange === range
-                      ? "bg-white text-indigo-950 shadow-xl scale-105"
-                      : "text-slate-500 hover:text-slate-200 hover:bg-white/5"
+                      ? "bg-white text-[#1e1b4b] shadow-xl scale-105"
+                      : "text-[#64748b] hover:text-[#e2e8f0] hover:bg-white/5"
                   }`}
                 >
                   {range === 12 ? "1 ГОД" : `${range} МЕСЯЦА`}
@@ -1854,7 +1870,6 @@ const Products = () => {
             const user = JSON.parse(localStorage.getItem("user"));
             createMutation.mutate({
               ...data,
-              type: modalType,
               user: user?._id || user?.id,
             });
           }}

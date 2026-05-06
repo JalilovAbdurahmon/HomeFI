@@ -5,7 +5,7 @@ import {
   ArrowUpCircle,
   Calendar,
   AlertTriangle,
-} from "lucide-react"; // AlertTriangle qo'shildi
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 const ModalStructure = ({
@@ -18,11 +18,16 @@ const ModalStructure = ({
   searchSuggestions = [],
   productSearch = "",
   setProductSearch,
-  productsData = { items: [] }, // productsData prop orqali kelishi kerak
+  productsData = { items: [] },
+  isUpdate = false,
+  // ✅ YANGI PROP: forcedType — tashqaridan type berilsa, switch ko'rinmaydi
+  // va foydalanuvchi o'zgartira olmaydi. Masalan: expense page -> forcedType="expense"
+  forcedType = null,
 }) => {
   if (!form) return null;
 
   const {
+    type,
     register,
     handleSubmit,
     setValue,
@@ -33,26 +38,39 @@ const ModalStructure = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const transactionType = watch("type", "expense");
-  // Tanlangan mahsulot ID-sini kuzatib boramiz
+  // ✅ ASOSIY FIX:
+  // 1. forcedType berilgan bo'lsa — uni ishlatamiz (expense/income page)
+  // 2. forcedType yo'q bo'lsa — form dagi type yoki "expense" default
+  const [transactionType, setTransactionType] = useState(
+    forcedType || watch("type") || "expense"
+  );
+
+  // forcedType o'zgarganda (masalan modal qayta ochilganda) sync qilamiz
+  useEffect(() => {
+    if (forcedType) {
+      setTransactionType(forcedType);
+      setValue("type", forcedType);
+    }
+  }, [forcedType]);
+
   const watchedProductId = watch("title");
+
+  const handleTypeChange = (newType) => {
+    setTransactionType(newType);
+    setValue("type", newType);
+  };
 
   useEffect(() => {
     const currentDate = watch("dateOfPayment");
     if (!currentDate) {
       const now = new Date();
-      // Mahalliy vaqtni hisobga olgan holda YYYY-MM-DD formatini yasash
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const day = String(now.getDate()).padStart(2, "0");
-
-      const today = `${year}-${month}-${day}`;
-
-      setValue("dateOfPayment", today);
+      setValue("dateOfPayment", `${year}-${month}-${day}`);
     }
   }, [setValue, watch]);
 
-  // Mahsulot tanlanganda ishlaydigan funksiya
   const handleSelect = (item) => {
     setProductSearch(item.title);
     setValue("title", item._id || item.id, { shouldValidate: true });
@@ -70,18 +88,15 @@ const ModalStructure = ({
     setIsOpen(false);
   };
 
-  // --- QOLDIQNI HISOBLASH LOGIKASI ---
   const getSelectedProductStock = () => {
     if (!watchedProductId || !productsData?.items) return null;
 
-    // Tanlangan mahsulotning harakatlarini filtrlaymiz (ID bo'yicha)
     const movements = productsData.items.filter(
       (item) => (item.title?._id || item.title) === watchedProductId
     );
 
     if (movements.length === 0) return null;
 
-    // Hisob-kitob
     return movements.reduce((acc, curr) => {
       const qty = Number(curr.quantity) || 0;
       return curr.type === "income" ? acc + qty : acc - qty;
@@ -89,7 +104,6 @@ const ModalStructure = ({
   };
 
   const currentStock = getSelectedProductStock();
-  // -----------------------------------
 
   useEffect(() => {
     const clickOutside = (e) => {
@@ -115,10 +129,19 @@ const ModalStructure = ({
         },
       });
     }
+
+    // ✅ transactionType (useState) — har doim ishonchli qiymat
+    data.type = transactionType;
+
+    // expense da narx yo'q — backend 0 olsin
+    if (transactionType === "expense") {
+      data.priceForOne = 0;
+    }
+
     if (submit) submit(data);
   };
 
-  const onError = (errors) => {
+  const onError = () => {
     toast.error("Hamma maydonlarni to'g'ri to'ldiring!");
   };
 
@@ -126,6 +149,12 @@ const ModalStructure = ({
     "w-full p-3 rounded-xl border-2 border-gray-200 outline-none focus:border-blue-500 font-semibold transition-all placeholder:text-gray-300 bg-white text-slate-800";
   const labelClass =
     "block text-[10px] font-black text-gray-400 mb-1 ml-1 uppercase tracking-wider";
+
+  // Switch ko'rsatiladimi yoki yo'qmi:
+  // - forcedType berilgan → switch ko'rinmaydi (expense/income page)
+  // - isUpdate=true → switch ko'rinmaydi
+  // - ikkalasi ham yo'q → switch ko'rinadi (universal modal)
+  const showSwitch = !isUpdate;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -144,32 +173,58 @@ const ModalStructure = ({
           </button>
         </div>
 
-        {/* Switch Section */}
-        <div className="flex p-1 bg-gray-100 rounded-2xl mb-6 relative">
-          <button
-            type="button"
-            onClick={() => setValue("type", "expense")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold transition-all ${
+        {/* Switch — faqat universal modalda (forcedType yo'q, isUpdate yo'q) */}
+        {showSwitch && (
+          <div className="flex p-1 bg-gray-100 rounded-2xl mb-6">
+            <button
+              type="button"
+              onClick={() => handleTypeChange("expense")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold transition-all ${
+                transactionType === "expense"
+                  ? "bg-white text-red-600 shadow-sm"
+                  : "text-gray-500"
+              }`}
+            >
+              <ArrowUpCircle size={18} /> Расход
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTypeChange("income")}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold transition-all ${
+                transactionType === "income"
+                  ? "bg-white text-green-600 shadow-sm"
+                  : "text-gray-500"
+              }`}
+            >
+              <ArrowDownCircle size={18} /> Приход
+            </button>
+          </div>
+        )}
+
+        {/* forcedType yoki isUpdate bo'lganda — tip badge ko'rsatamiz */}
+        {!showSwitch && (
+          <div
+            className={`text-center py-2.5 mb-6 rounded-2xl font-bold text-sm ${
               transactionType === "expense"
-                ? "bg-white text-red-600 shadow-sm"
-                : "text-gray-500"
+                ? "bg-red-50 text-red-600"
+                : "bg-green-50 text-green-600"
             }`}
           >
-            <ArrowUpCircle size={18} /> Расход
-          </button>
-          <button
-            type="button"
-            onClick={() => setValue("type", "income")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold transition-all ${
-              transactionType === "income"
-                ? "bg-white text-green-600 shadow-sm"
-                : "text-gray-500"
-            }`}
-          >
-            <ArrowDownCircle size={18} /> Приход
-          </button>
-          <input type="hidden" {...register("type")} />
-        </div>
+            <span className="flex items-center justify-center gap-2">
+              {transactionType === "expense" ? (
+                <>
+                  <ArrowUpCircle size={16} />
+                  {isUpdate ? "Расходни tahrirlash" : "Расход qo'shish"}
+                </>
+              ) : (
+                <>
+                  <ArrowDownCircle size={16} />
+                  {isUpdate ? "Приходни tahrirlash" : "Приход qo'shish"}
+                </>
+              )}
+            </span>
+          </div>
+        )}
 
         <form
           onSubmit={handleSubmit(onFormSubmit, onError)}
@@ -177,7 +232,7 @@ const ModalStructure = ({
         >
           {/* 1. MAHSULOT QIDIRUV */}
           <div className="relative" ref={dropdownRef}>
-            <label className={labelClass}>Mahsulot</label>
+            <label className={labelClass}>Название</label>
             <input
               type="text"
               autoComplete="off"
@@ -188,7 +243,7 @@ const ModalStructure = ({
                 setValue("title", e.target.value);
               }}
               className={inputClass}
-              placeholder="Mahsulotni qidiring..."
+              placeholder="Выберите продукты..."
             />
             <input type="hidden" {...register("title", { required: true })} />
 
@@ -219,7 +274,7 @@ const ModalStructure = ({
               )}
           </div>
 
-          {/* DINAMIK OGOHLANTIRISH (Aynan shu yerda chiqadi) */}
+          {/* CRITICAL STOCK OGOHLANTIRISH */}
           {watchedProductId &&
             currentStock !== null &&
             currentStock <= 5 &&
@@ -258,40 +313,39 @@ const ModalStructure = ({
               </div>
             )}
 
-          {/* 2. KATEGORIYA VA BIRLIK */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Kategoriya */}
-            <div className="cursor-not-allowed">
-              {" "}
-              {/* Kursorni shu yerga qo'yamiz */}
-              <label className={labelClass}>Kategoriya</label>
-              <select
-                {...register("productsCategory", { required: true })}
-                className={`${inputClass} pointer-events-none bg-gray-100`} // Bosishni o'chiramiz
-                tabIndex={-1}
-              >
-                <option value="">Tanlang</option>
-                {categories
-                  .filter((c) => c._id !== "all")
-                  .map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.title}
-                    </option>
-                  ))}
-              </select>
-            </div>
+          {/* 2. KATEGORIYA — to'liq kenglik */}
+          <div className="cursor-not-allowed">
+            <label className={labelClass}>Категория</label>
+            <select
+              {...register("productsCategory", { required: true })}
+              className={`${inputClass} pointer-events-none bg-gray-100`}
+              tabIndex={-1}
+            >
+              <option value="">Выберите...</option>
+              {categories
+                .filter((c) => c._id !== "all")
+                .map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.title}
+                  </option>
+                ))}
+            </select>
+          </div>
 
-            {/* Birlik */}
+          {/* 3. BIRLIK + MIQDOR (+ NARX income da) — bitta row */}
+          <div
+            className={`grid gap-3 ${
+              transactionType === "income" ? "grid-cols-3" : "grid-cols-2"
+            }`}
+          >
             <div className="cursor-not-allowed">
-              {" "}
-              {/* Kursorni shu yerga qo'yamiz */}
-              <label className={labelClass}>Birlik</label>
+              <label className={labelClass}>Ед.измерения</label>
               <select
                 {...register("edinisaIzmereniya", { required: true })}
                 className={`${inputClass} pointer-events-none bg-gray-100`}
                 tabIndex={-1}
               >
-                <option value="">Tanlang</option>
+                <option value="">Выберите...</option>
                 {units.map((u) => (
                   <option key={u._id} value={u._id}>
                     {u.title}
@@ -299,12 +353,9 @@ const ModalStructure = ({
                 ))}
               </select>
             </div>
-          </div>
 
-          {/* 3. MIQDOR VA NARX */}
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Miqdori</label>
+              <label className={labelClass}>Количество</label>
               <input
                 type="number"
                 step="0.01"
@@ -313,20 +364,27 @@ const ModalStructure = ({
                 placeholder="0.00"
               />
             </div>
-            <div>
-              <label className={labelClass}>Narxi (Dona)</label>
-              <input
-                type="number"
-                {...register("priceForOne", { required: true })}
-                className={inputClass}
-                placeholder="0"
-              />
-            </div>
+
+            {transactionType === "income" && (
+              <div>
+                <label className={labelClass}>Цена (за ед.)</label>
+                <input
+                  type="number"
+                  {...register("priceForOne", {
+                    required: transactionType === "income",
+                  })}
+                  className={inputClass}
+                  placeholder="0"
+                />
+              </div>
+            )}
           </div>
 
           {/* 4. TO'LOV SANASI */}
           <div className="relative">
-            <label className={labelClass}>To'lov sanasi</label>
+            <label className={labelClass}>
+              {type === "income" ? "Дата прихода" : "Дата расхода"}
+            </label>
             <div className="relative">
               <input
                 type="date"
@@ -340,7 +398,7 @@ const ModalStructure = ({
             </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
             className={`w-full py-4 mt-2 rounded-xl font-black text-white transition-all active:scale-95 uppercase italic tracking-widest shadow-lg ${
@@ -350,7 +408,11 @@ const ModalStructure = ({
             }`}
           >
             {transactionType === "expense"
-              ? "Сохранить Расход"
+              ? isUpdate
+                ? "Расходни yangilash"
+                : "Сохранить Расход"
+              : isUpdate
+              ? "Приходни yangilash"
               : "Сохранить Приход"}
           </button>
         </form>
