@@ -859,7 +859,7 @@ const CommunalAll = () => {
                     </div>
                     <div className="flex flex-col items-start leading-tight">
                       <span className="text-[13px] whitespace-nowrap">
-                        Выберите отчёт
+                        Сохранить отчёт
                       </span>
                     </div>
                   </div>

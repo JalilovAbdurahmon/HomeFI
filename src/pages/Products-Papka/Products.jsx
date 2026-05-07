@@ -1096,7 +1096,7 @@ const Products = () => {
                 className="h-[54px] flex items-center gap-3 bg-[#10a37f] text-white px-6 rounded-[20px] font-bold shadow-lg active:scale-95 transition-all"
               >
                 <FileText size={18} />
-                <span className="text-sm">Отчёт</span>
+                <span className="text-sm">Сохранить отчёт</span>
                 <ChevronDown
                   size={16}
                   className={`transition-transform duration-300 ${
