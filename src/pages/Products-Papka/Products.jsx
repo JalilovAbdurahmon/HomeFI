@@ -577,7 +577,7 @@ const Products = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["allProductsRaw"] });
       queryClient.invalidateQueries({ queryKey: ["productsIncome"] });
-      toast.success("Muvaffaqiyatli o'chirildi", {
+      toast.success("Удален успешно", {
         style: {
           borderRadius: "16px",
           background: "#fef2f2",
@@ -587,7 +587,7 @@ const Products = () => {
     },
     onError: (error) => {
       toast.error(
-        error.response?.data?.message || "O'chirishda xatolik yuz berdi"
+        error.response?.data?.message || "При удалении произошла ошибка"
       );
     },
   });
