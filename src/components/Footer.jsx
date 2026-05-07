@@ -70,8 +70,8 @@ const Footer = () => {
             </h1>
           </div>
           <p className="text-sm text-slate-500 font-medium leading-relaxed">
-            Smart way to manage your home finances. Moliyaviy erkinlikni biz
-            bilan birga boshqaring.
+            Умный способ управлять домашними финансами. Финансовая свобода
+            мывести с.
           </p>
 
           {/* Social Links */}
@@ -122,14 +122,14 @@ const Footer = () => {
 
         {/* 2. Sections */}
         <div>
-          <h2 className="text-lg font-bold text-slate-900 mb-6">Bo'limlar</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-6">Отделы</h2>
           <ul className="space-y-4 text-sm font-semibold text-slate-600">
             {[
-              "Bosh sahifa",
-              "Byudjet",
-              "Hisobotlar",
-              "Profil",
-              "Sozlamalar",
+              "Домашняя страница",
+              "Бюджет",
+              "Отчеты",
+              "Профиль",
+              "Настройки",
             ].map((link) => (
               <li
                 key={link}
@@ -149,15 +149,13 @@ const Footer = () => {
           {" "}
           {/* flex-col + gap */}
           <div>
-            <h2 className="text-lg font-bold text-slate-900 mb-2">
-              Bog'lanish
-            </h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-2">Связь</h2>
           </div>
           {/* Telefon */}
           <a href="tel:+998900237522" className="w-full block">
             <ContactCard
               icon={<FiPhone />}
-              title="Telefon"
+              title="Телефон"
               value="+998 90 023 75 22"
               colorClass="bg-emerald-50 text-emerald-600"
             />
@@ -171,7 +169,7 @@ const Footer = () => {
           >
             <ContactCard
               icon={<FiMapPin />}
-              title="Manzil"
+              title="Адрес"
               value="Tashkent, Uzbekistan, 100011"
               colorClass="bg-rose-50 text-rose-600"
             />
@@ -181,16 +179,16 @@ const Footer = () => {
 
       {/* Footer bottom */}
       <div className="border-t border-slate-50 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-slate-400">
-        <p>© 2026 HomeFi. Barcha huquqlar himoyalangan.</p>
+        <p>© 2026 HomeFi. Все права защищены.</p>
         <div className="flex gap-6 uppercase tracking-widest">
           <a href="#" className="hover:text-indigo-600 transition-colors">
-            Terms
+            Условия
           </a>
           <a href="#" className="hover:text-indigo-600 transition-colors">
-            Privacy
+            Конфиденциальность
           </a>
           <a href="#" className="hover:text-indigo-600 transition-colors">
-            Cookies
+            Файлы cookie
           </a>
         </div>
       </div>
@@ -200,7 +198,7 @@ const Footer = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md relative">
             <h2 className="text-lg font-bold text-slate-900 mb-4">
-              Xabar yuborish
+              Отправить сообщение
             </h2>
             <form
               ref={formRef}
@@ -210,20 +208,20 @@ const Footer = () => {
               <input
                 type="text"
                 name="user_name"
-                placeholder="Ismingiz"
+                placeholder="Ваше имя"
                 className="border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 required
               />
               <input
                 type="email"
                 name="user_email"
-                placeholder="Emailingiz"
+                placeholder="Ваш адрес электронной почты"
                 className="border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 required
               />
               <textarea
                 name="message"
-                placeholder="Xabaringiz"
+                placeholder="Ваше сообщение"
                 rows={4}
                 className="border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
                 required
@@ -234,13 +232,13 @@ const Footer = () => {
                   onClick={() => setModalOpen(false)}
                   className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
                 >
-                  Bekor qilish
+                  Отмена
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
                 >
-                  Yuborish
+                  Отправить
                 </button>
               </div>
             </form>

@@ -326,7 +326,7 @@ const IncomePage = () => {
 
     // Ma'lumotlarni tayyorlab olamiz
     const formData = {
-      title: product.title?._id || product.title,
+      title: product.title?.title || product.title || "",
       dateOfPayment: product.dateOfPayment,
       edinisaIzmereniya:
         product.edinisaIzmereniya?._id || product.edinisaIzmereniya,
@@ -362,11 +362,17 @@ const IncomePage = () => {
       toast.error("Mahsulot IDsi topilmadi");
       return;
     }
+    // ✅ title matn bo'lsa, ID ga o'giramiz
+    const titleId =
+      typeof editingProduct?.title === "object"
+        ? editingProduct?.title?._id
+        : editingProduct?.title;
 
     // 3. Mutatsiyani chaqirish
     updateMutation.mutate({
       id: productId, // ID alohida yuboriladi
       ...data, // Formadagi barcha inputlar
+      title: titleId,
       type: "income",
       user: user?._id || user?.id,
     });
@@ -391,7 +397,7 @@ const IncomePage = () => {
   if (isLoading)
     return (
       <div className="p-20 text-center font-black text-slate-300 animate-pulse uppercase tracking-[0.3em]">
-        Yuklanmoqda...
+        Загрузка...
       </div>
     );
 
@@ -648,7 +654,7 @@ const IncomePage = () => {
                   {(() => {
                     // Sening mantiqingni aynan shu yerga ko'chirib o'tamiz
                     const item = selectedProduct;
-                    if (!item) return "Yuklanmoqda...";
+                    if (!item) return "Загрузка...";
 
                     return typeof item.title === "object" && item.title !== null
                       ? item.title?.title || "Bez nomi"
