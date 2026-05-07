@@ -436,7 +436,7 @@ const CommunalAll = () => {
     });
   };
 
-  const handleDeleteConfirm = (id) => {
+  const handleDeleteConfirm = (id) => {й
     // Toast ichida bizning maxsus komponentimiz chiqadi
     toast.info(
       ({ closeToast }) => (
@@ -447,10 +447,10 @@ const CommunalAll = () => {
             </div>
             <div>
               <h4 className="font-bold text-gray-800 text-sm">
-                O'chirishni tasdiqlang
+                Подтвердите удаление
               </h4>
               <p className="text-xs text-gray-500">
-                Haqiqatan ham ushbu ma'lumotni o'chirmoqchimisiz?
+                Вы уверены, что хотите удалить эту информацию?
               </p>
             </div>
           </div>
@@ -461,7 +461,7 @@ const CommunalAll = () => {
               onClick={closeToast}
               className="px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
             >
-              Bekor qilish
+              Отмена
             </button>
 
             {/* O'chirish tugmasi */}
@@ -472,7 +472,7 @@ const CommunalAll = () => {
               }}
               className="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-lg shadow-md shadow-red-200 transition-all"
             >
-              O'chirish
+              Удалить
             </button>
           </div>
         </div>

@@ -489,14 +489,10 @@ const Products = () => {
   }, [allProductsRaw]);
 
   const totalExpense = useMemo(() => {
-    const dataArray = Array.isArray(productsData)
-      ? productsData
-      : productsData?.items || [];
-    if (dataArray.length === 0) return 0;
-    return dataArray
+    if (!allProductsRaw.length) return 0;
+    return allProductsRaw
       .filter((item) => {
-        const isExpense = item.type === "expense";
-        if (!isExpense) return false;
+        if (item.type !== "income") return false;
         const itemDate = new Date(item.dateOfPayment);
         const rangeDate = new Date();
         rangeDate.setMonth(now.getMonth() - activeRange);
@@ -511,7 +507,8 @@ const Products = () => {
         const p = Number(item.priceForOne) || 0;
         return sum + q * p;
       }, 0);
-  }, [productsData, activeRange, dashboardCategory]);
+  }, [allProductsRaw, activeRange, dashboardCategory]);
+  console.log("productsData items:", productsData?.items?.slice(0, 3));
 
   const { data: unitsResponse } = useQuery({
     queryKey: ["getEdinisaIzmereniya"],
@@ -1296,92 +1293,77 @@ const Products = () => {
                     return (
                       <div
                         key={item._id || item.id}
-                        className="relative flex flex-col justify-between p-4 bg-white rounded-[32px] border border-slate-50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] transition-all duration-500 group h-[190px] w-full hover:-translate-y-1 overflow-hidden"
+                        className="relative flex flex-col justify-between p-5 bg-white rounded-[32px] border border-slate-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.07)] transition-all duration-500 group h-[180px] w-full hover:-translate-y-1 overflow-hidden"
                       >
-                        <div className="absolute top-4 right-4 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider z-20 bg-red-50 text-red-500">
+                        {/* Top accent line */}
+                        <div className="absolute top-0 left-6 right-6 h-[2px] rounded-b-full bg-gradient-to-r from-transparent via-indigo-200 to-transparent" />
+
+                        {/* РАСХОД badge */}
+                        <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-50 text-red-400 border border-red-100">
                           Расход
                         </div>
 
-                        <div className="relative flex items-start justify-between z-10">
-                          <div className="flex items-center gap-4">
+                        {/* Title + buttons */}
+                        <div className="relative flex items-center justify-between z-10 mt-1">
+                          <div className="flex items-center gap-3">
                             <div className="transform group-hover:scale-110 transition-transform duration-500">
                               <ProductIcon name={displayTitle} />
                             </div>
                             <div>
-                              <h3 className="font-black text-slate-800 text-[16px] leading-tight tracking-tight group-hover:text-indigo-600 transition-colors max-w-[140px] truncate">
+                              <h3 className="font-black text-slate-800 text-[15px] leading-tight tracking-tight group-hover:text-indigo-600 transition-colors max-w-[140px] truncate">
                                 {displayTitle}
                               </h3>
-                              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1 opacity-80">
+                              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mt-0.5">
                                 {item.dateOfPayment || "Нет даты"}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 z-30 mt-3.5">
+
+                          <div className="flex items-center gap-1.5 z-30">
                             <button
                               onClick={() => openHistory(item)}
-                              className="p-2.5 bg-blue-50 text-blue-500 rounded-xl hover:bg-blue-600 hover:text-white transition-all active:scale-90 shadow-sm"
+                              className="p-2.5 bg-blue-50 text-blue-400 rounded-xl hover:bg-blue-500 hover:text-white transition-all active:scale-90"
                             >
-                              <HistoryIcon size={15} strokeWidth={2.5} />
+                              <HistoryIcon size={14} strokeWidth={2.5} />
                             </button>
                             <button
                               onClick={() => openEditModal(item)}
-                              className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90"
+                              className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-indigo-50 hover:text-indigo-500 transition-all active:scale-90"
                             >
-                              <Pencil size={15} strokeWidth={2.5} />
+                              <Pencil size={14} strokeWidth={2.5} />
                             </button>
                             <button
                               onClick={() => confirmDelete(item._id || item.id)}
-                              className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-500 transition-all active:scale-90"
+                              className="p-2.5 bg-slate-50 text-slate-400 rounded-xl hover:bg-red-50 hover:text-red-400 transition-all active:scale-90"
                             >
-                              <Trash2 size={15} strokeWidth={2.5} />
+                              <Trash2 size={14} strokeWidth={2.5} />
                             </button>
                           </div>
                         </div>
 
-                        <div className="relative h-px w-full bg-gradient-to-r from-transparent via-slate-100 to-transparent z-10 my-2" />
+                        {/* Divider */}
+                        <div className="relative h-px w-full bg-gradient-to-r from-transparent via-slate-100 to-transparent z-10" />
 
-                        <div className="relative z-10 flex flex-col gap-2">
-                          <div className="flex justify-end mt-2">
-                            {" "}
-                            {/* O'ng tarafga taqash uchun justify-end */}
-                            <div className="flex items-center gap-2 bg-red-50/60 px-3 py-1.5 rounded-xl border border-red-100 shadow-sm">
-                              {/* Label */}
-                              <span className="text-[9px] font-black text-red-400 uppercase tracking-tighter border-r border-red-200 pr-2 leading-none">
-                                Использовано
+                        {/* ИСПОЛЬЗОВАНО badge — centered */}
+                        <div className="relative z-10 flex justify-center pb-1">
+                          <div className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-rose-50 px-4 py-2 rounded-2xl border border-red-100 shadow-sm">
+                            <span className="text-[9px] font-black text-red-300 uppercase tracking-widest border-r border-red-200 pr-2.5 leading-none">
+                              Использовано
+                            </span>
+                            <div className="flex items-center gap-1 pl-0.5">
+                              <span className="text-[18px] font-black text-red-500 italic leading-none">
+                                -{usedQty}
                               </span>
-
-                              {/* Qiymat va Birlik */}
-                              <div className="flex items-center gap-1 pl-1">
-                                <span className="text-[16px] font-black text-red-500 italic leading-none">
-                                  -{usedQty}
-                                </span>
-                                <span className="text-[9px] ml-1 mt-1.5 font-bold text-slate-500 uppercase leading-none">
-                                  {item.edinisaIzmereniya?.title || "шт"}
-                                </span>
-                              </div>
-
-                              {/* Kichkina vizual nuqta (ixtiyoriy, oxiri ekanini bildiradi) */}
-                              <div className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse ml-1" />
+                              <span className="text-[9px] ml-1 mt-1.5 font-bold text-slate-400 uppercase leading-none">
+                                {item.edinisaIzmereniya?.title || "шт"}
+                              </span>
                             </div>
-                          </div>
-
-                          <div className="flex items-end justify-between">
-                            <p className="text-[11px] text-slate-400 font-bold">
-                              <span className="text-[9px] mr-1 opacity-60">
-                                Цена:
-                              </span>
-                              {item.priceForOne?.toLocaleString()}
-                            </p>
-                            <p className="font-black text-xl italic leading-none tracking-tighter text-slate-800">
-                              {item.sum?.toLocaleString()}{" "}
-                              <span className="text-[10px] text-indigo-500 ml-1.5 not-italic uppercase">
-                                uzs
-                              </span>
-                            </p>
+                            <div className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse ml-0.5" />
                           </div>
                         </div>
 
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-1 rounded-t-full transition-all duration-500 group-hover:w-1/3 bg-indigo-500" />
+                        {/* Bottom hover line */}
+                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[3px] rounded-t-full transition-all duration-500 group-hover:w-1/3 bg-indigo-400" />
                       </div>
                     );
                   })
@@ -1776,7 +1758,7 @@ const Products = () => {
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
                 <p className="text-indigo-400 text-[10px] uppercase tracking-[3px] font-black">
-                  Общий расход:{" "}
+                  Общий приход:{" "}
                   {dashboardCategory === "all"
                     ? "Все категории"
                     : categories.find((c) => c._id === dashboardCategory)

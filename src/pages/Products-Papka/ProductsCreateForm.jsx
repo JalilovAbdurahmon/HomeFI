@@ -321,7 +321,7 @@ const ModalStructure = ({
               className={`${inputClass} pointer-events-none bg-gray-100`}
               tabIndex={-1}
             >
-              <option value="">Выберите...</option>
+              <option value=""></option>
               {categories
                 .filter((c) => c._id !== "all")
                 .map((c) => (
@@ -345,7 +345,7 @@ const ModalStructure = ({
                 className={`${inputClass} pointer-events-none bg-gray-100`}
                 tabIndex={-1}
               >
-                <option value="">Выберите...</option>
+                <option value=""></option>
                 {units.map((u) => (
                   <option key={u._id} value={u._id}>
                     {u.title}

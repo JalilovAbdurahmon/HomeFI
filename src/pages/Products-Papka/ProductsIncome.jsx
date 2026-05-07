@@ -173,26 +173,31 @@ const IncomePage = () => {
 
   const processedIncomes = useMemo(() => {
     const result = [];
-    
+
     // 1. Ma'lumot borligini tekshiramiz
     const allProducts = productsData?.items || [];
-  
-    allProducts.forEach(product => {
+
+    allProducts.forEach((product) => {
       // 2. Kirimlar (Income) va Chiqimlarni (Expense) ajratamiz
       // 'income' so'zi bazada qanday yozilganiga e'tibor ber (kichik yoki katta harf)
       const history = product.history || [];
-      const incomes = history.filter(h => h.type?.toLowerCase() === 'income');
-      const expenses = history.filter(h => h.type?.toLowerCase() === 'expense');
-  
+      const incomes = history.filter((h) => h.type?.toLowerCase() === "income");
+      const expenses = history.filter(
+        (h) => h.type?.toLowerCase() === "expense"
+      );
+
       // 3. Jami xarajat miqdori
-      const totalExpenseQty = expenses.reduce((sum, h) => sum + (Number(h.quantity) || 0), 0);
-  
+      const totalExpenseQty = expenses.reduce(
+        (sum, h) => sum + (Number(h.quantity) || 0),
+        0
+      );
+
       let tempExpense = totalExpenseQty;
-  
+
       // 4. FIFO (Birinchi kirgan birinchi chiqadi)
-      incomes.forEach(inc => {
+      incomes.forEach((inc) => {
         let currentQty = Number(inc.quantity) || 0;
-  
+
         if (tempExpense > 0) {
           if (currentQty <= tempExpense) {
             tempExpense -= currentQty;
@@ -202,21 +207,22 @@ const IncomePage = () => {
             tempExpense = 0;
           }
         }
-  
+
         // Faqat qoldig'i 0 dan katta bo'lgan kirimlarni natijaga qo'shamiz
         if (currentQty > 0) {
           result.push({
             ...inc,
             remainingQty: currentQty,
             // Agar pastda title chiqmayotgan bo'lsa, buni tekshir:
-            displayTitle: product.title?.title || product.title || "Без названия",
+            displayTitle:
+              product.title?.title || product.title || "Без названия",
             categoryName: product.productsCategory?.title || "Общее",
-            measurementUnit: product.edinisaIzmereniya?.title || "ед"
+            measurementUnit: product.edinisaIzmereniya?.title || "ед",
           });
         }
       });
     });
-  
+
     return result;
   }, [productsData]);
 
@@ -417,7 +423,7 @@ const IncomePage = () => {
             Приход Товаров
           </h1>
           <p className="text-slate-500 font-medium ml-1 text-sm">
-            Barcha kirim operatsiyalari va ombor statistikasi
+            Все входящие транзакции и складская статистика
           </p>
         </div>
       </div>
@@ -462,7 +468,7 @@ const IncomePage = () => {
           </div>
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-              Bugungi sana
+              Сегодняшняя дата
             </p>
             <h3 className="text-xl font-black text-slate-800 tracking-tight uppercase italic">
               {new Date().toLocaleDateString("ru-RU")}
