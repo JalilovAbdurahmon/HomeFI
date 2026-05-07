@@ -1093,10 +1093,10 @@ const Products = () => {
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="h-[54px] flex items-center gap-3 bg-[#10a37f] text-white px-6 rounded-[20px] font-bold shadow-lg active:scale-95 transition-all"
+                className="h-[48px] flex items-center gap-2 bg-[#10a37f] text-white px-6 rounded-[20px] font-bold shadow-lg active:scale-95 transition-all"
               >
                 <FileText size={18} />
-                <span className="text-sm">Сохранить отчёт</span>
+                <span className="text-[13px]">Сохранить отчёт</span>
                 <ChevronDown
                   size={16}
                   className={`transition-transform duration-300 ${
