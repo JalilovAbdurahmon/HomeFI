@@ -1,7 +1,7 @@
 import React from "react";
 import { Route, Routes } from "react-router-dom";
 import Layout from "./pages/Layout";
-import Home from "./pages/Home";
+import Home from "./pages/PanelUpravleniya-papka/Home";
 import BudgetUI from "./pages/Budjet";
 import Communal from "./pages/Communal-Papka/Communal";
 import Products from "./pages/Products-Papka/Products";
@@ -11,6 +11,7 @@ import CommunalAll from "./pages/Communal-Papka/CommunalAll";
 import Register from "./pages/Register";
 import ProfileSettings from "./pages/ProfileSettings";
 import IncomePage from "./pages/Products-Papka/ProductsIncome";
+import TransactionHistory from "./pages/PanelUpravleniya-papka/HomeChecks";
 
 const App = () => {
   return (
@@ -27,6 +28,7 @@ const App = () => {
           <Route path="/formirovaniyaZakupa" element={<FormirovaniyaZakupa />} />
           <Route path="/profileSettings" element={<ProfileSettings />}/>
           <Route path="/productsIncome" element={<IncomePage />}/>
+          <Route path="/homeChecks" element={<TransactionHistory />} />
         </Route>
       </Routes>
     </div>

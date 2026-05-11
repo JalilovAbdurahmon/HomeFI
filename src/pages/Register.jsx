@@ -110,37 +110,49 @@ const Register = () => {
   const passwordsMatch =
     !isLogin && confirmPassword ? password === confirmPassword : true;
 
-  const onSubmit = async (data) => {
-    if (!isLogin && data.password !== data.confirmPassword) {
-      toast.error("Пароли не совпадают!");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      if (isLogin) {
-        const res = await instance.post("/login", data);
-        const token = res.data.token;
-        const username = res.data.user?.username || data.username;
-        localStorage.setItem("token", token);
-        localStorage.setItem("username", username);
-        toast.success("Вы успешно вошли в систему!");
-        setTimeout(() => {
-          window.location.href = "/products";
-        }, 1000);
-      } else {
-        const { confirmPassword: _, ...submitData } = data;
-        await instance.post("/register", submitData);
-        toast.success("Аккаунт создан! Теперь войдите в систему.");
-        setIsLogin(true);
+    const onSubmit = async (data) => {
+      if (!isLogin && data.password !== data.confirmPassword) {
+        toast.error("Пароли не совпадают!");
+        return;
       }
-    } catch (err) {
-      toast.error(
-        err?.response?.data?.message || "Произошла ошибка. Попробуйте снова."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      setIsLoading(true);
+      try {
+        if (isLogin) {
+          // LOGIN QISMI
+          const res = await instance.post("/login", data);
+          
+          const token = res.data.token;
+          // MUHIM: Backenddan kelayotgan user obyektini oling
+          const user = res.data.user; 
+    
+          if (token && user) {
+            localStorage.setItem("token", token);
+            // Endi inputga yozilgan emas, bazadagi haqiqiy username saqlanadi
+            localStorage.setItem("username", user.username);
+            // Agar role yoki avatar bo'lsa ularni ham saqlash mumkin
+            localStorage.setItem("userRole", user.role);
+            
+            toast.success("Вы успешно вошли в систему!");
+            
+            setTimeout(() => {
+              window.location.href = "/home";
+            }, 1000);
+          }
+        } else {
+          // REGISTER QISMI
+          const { confirmPassword: _, ...submitData } = data;
+          await instance.post("/register", submitData);
+          toast.success("Аккаунт создан! Теперь войдите в систему.");
+          setIsLogin(true);
+        }
+      } catch (err) {
+        toast.error(
+          err?.response?.data?.message || "Произошла ошибка. Попробуйте снова."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   useEffect(() => {
     if (isLogin) {

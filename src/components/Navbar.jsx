@@ -1,31 +1,66 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bell, ChevronDown, User, Settings, LogOut } from "lucide-react"; // Zamonaviy ikonalar
+import { Bell, ChevronDown, User, Settings, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+const BASE_URL = "http://localhost:2000";
+
+const getAvatarUrl = (avatarPath, username = "User") => {
+  if (!avatarPath) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random&color=fff`;
+  }
+  if (avatarPath.startsWith("http")) {
+    return avatarPath;
+  }
+  return `${BASE_URL}${avatarPath.startsWith("/") ? "" : "/"}${avatarPath}`;
+};
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [username, setUsername] = useState("User");
   const notificationCount = 4;
   const menuRef = useRef(null);
   const nav = useNavigate();
 
-  // Tashqarini bosganda yopilish
+  // localStorage dan avatar va username ni o'qiymiz
+  const loadUserInfo = () => {
+    const savedAvatar = localStorage.getItem("avatar") || "";
+    const savedUsername = localStorage.getItem("username") || "User";
+    setUsername(savedUsername);
+    setAvatarUrl(getAvatarUrl(savedAvatar, savedUsername));
+  };
+
   useEffect(() => {
+    // Sahifa ochilganda o'qiymiz
+    loadUserInfo();
+
+    // ProfileSettings saqlanganda yangilansin (custom event)
+    window.addEventListener("profileUpdated", loadUserInfo);
+
+    // Tashqariga bosganda menyu yopilsin
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      window.removeEventListener("profileUpdated", loadUserInfo);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("avatar");
+    localStorage.removeItem("username");
     nav("/");
   };
 
   const handleProfileSettings = () => {
     nav("/profileSettings");
+    setOpen(false);
   };
 
   return (
@@ -56,16 +91,23 @@ const Navbar = () => {
           >
             <div className="relative">
               <img
-                src="https://i.pravatar.cc/40"
+                src={avatarUrl}
                 alt="avatar"
                 className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    username
+                  )}&background=random&color=fff`;
+                }}
               />
               <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
             </div>
 
             <div className="hidden sm:block text-left">
+              {/* Username dinamik — ProfileSettings bilan sinxron */}
               <p className="text-sm font-bold text-slate-700 leading-none">
-                Abdurahmon
+                {username}
               </p>
               <p className="text-[10px] text-slate-400 mt-1 font-medium uppercase tracking-wider">
                 Пользователь
@@ -80,7 +122,7 @@ const Navbar = () => {
             />
           </button>
 
-          {/* Enhanced Dropdown */}
+          {/* Dropdown */}
           <div
             className={`absolute mt-3 w-56 bg-white/95 backdrop-blur-xl rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 right-0 py-2 transform transition-all duration-300 origin-top-right z-50 ${
               open
@@ -88,12 +130,6 @@ const Navbar = () => {
                 : "opacity-0 scale-95 pointer-events-none"
             }`}
           >
-            {/* User Header in Dropdown
-            <div className="px-4 py-3 mb-2 border-b border-slate-50">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ma'lumot</p>
-              <p className="text-sm font-bold text-slate-700 truncate">admin@gmail.com</p>
-            </div> */}
-
             <ul className="px-2 space-y-1">
               <li
                 onClick={handleProfileSettings}

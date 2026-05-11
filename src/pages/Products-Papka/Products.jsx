@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Plus,
   X,
   ShoppingBag,
   Calendar,
@@ -12,7 +11,6 @@ import {
   ChevronDown,
   Pencil,
   Trash2,
-  AlertCircle,
   Trash,
   FilterX,
   LayoutGrid,
@@ -69,6 +67,7 @@ const Products = () => {
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [dismissedAlerts, setDismissedAlerts] = useState([]);
 
   const queryClient = useQueryClient();
   const nav = useNavigate();
@@ -146,7 +145,7 @@ const Products = () => {
           setSearchSuggestions(res.data || []);
           setIsSuggestionsOpen(true);
         } catch (err) {
-          console.error("Backend qidiruvda xato:", err);
+          console.error("Ошибка внутреннего поиска:", err);
         }
       } else {
         setSearchSuggestions([]);
@@ -481,7 +480,7 @@ const Products = () => {
     });
 
     return Object.values(totals)
-      .filter((obj) => obj.quantity > 0 && obj.quantity <= 5)
+      .filter((obj) => obj.quantity >= 1 && obj.quantity <= 5)
       .map((obj) => ({
         title: obj.title,
         count: obj.quantity,
@@ -1131,119 +1130,148 @@ const Products = () => {
 
           <div className="flex flex-col gap-6">
             {/* LOW STOCK ALERTS */}
-            {lowStockAlerts && lowStockAlerts.length > 0 && (
-              <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-                {/* HEADER */}
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-8 bg-gradient-to-b from-red-500 to-orange-400 rounded-full" />
-
-                    <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
-                      Товары на исходе
-                    </h2>
+            {lowStockAlerts &&
+              lowStockAlerts.filter((item) => {
+                const key =
+                  typeof item.title === "object" ? item.title?._id : item.title;
+                return !dismissedAlerts.includes(key);
+              }).length > 0 && (
+                <div className="animate-in fade-in slide-in-from-top-4 duration-700">
+                  {/* HEADER */}
+                  <div className="flex items-center justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-8 bg-gradient-to-b from-red-500 to-orange-400 rounded-full" />
+                      <h2 className="text-sm font-black uppercase tracking-wider text-slate-800">
+                        Товары на исходе
+                      </h2>
+                    </div>
+                    <span className="px-3 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded-full border border-red-100">
+                      {
+                        lowStockAlerts.filter((item) => {
+                          const key =
+                            typeof item.title === "object"
+                              ? item.title?._id
+                              : item.title;
+                          return !dismissedAlerts.includes(key);
+                        }).length
+                      }{" "}
+                      alert
+                    </span>
                   </div>
 
-                  <span className="px-3 py-1 bg-red-50 text-red-600 text-[11px] font-bold rounded-full border border-red-100">
-                    {lowStockAlerts.length} alert
-                  </span>
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {lowStockAlerts
+                      .filter((item) => {
+                        const key =
+                          typeof item.title === "object"
+                            ? item.title?._id
+                            : item.title;
+                        return !dismissedAlerts.includes(key);
+                      })
+                      .map((item, idx) => {
+                        const key =
+                          typeof item.title === "object"
+                            ? item.title?._id
+                            : item.title;
 
-                {/* GRID - Kenglikni oshirish uchun lg:grid-cols-3 qildik (4 tadan 3 taga kamaytirish cardni kengaytiradi) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {lowStockAlerts.map((item, idx) => {
-                    const name =
-                      typeof item.title === "object"
-                        ? item.title?.title
-                        : titleProducts?.find((p) => p._id === item.title)
-                            ?.title ||
-                          item.title ||
-                          "Без названия";
+                        const name =
+                          typeof item.title === "object"
+                            ? item.title?.title
+                            : titleProducts?.find((p) => p._id === item.title)
+                                ?.title ||
+                              item.title ||
+                              "Без названия";
 
-                    const percent = Math.min((item.count / 5) * 100, 100);
+                        const percent = Math.min((item.count / 5) * 100, 100);
 
-                    return (
-                      <div
-                        key={idx}
-                        className="relative group rounded-[26px] p-[1px] bg-gradient-to-br from-red-200 via-white to-orange-100 shadow-sm hover:shadow-xl transition-all duration-300 min-w-[280px]"
-                      >
-                        {/* INNER CARD */}
-                        <div className="relative bg-white rounded-[25px] p-5 overflow-hidden">
-                          {" "}
-                          {/* p-4 dan p-5 ga oshirildi ichki joy uchun */}
-                          {/* content */}
-                          <div className="flex justify-between items-center relative z-10 gap-3">
-                            {/* LEFT */}
-                            <div className="flex flex-col gap-1 flex-1">
-                              <span className="text-[10px] font-black text-red-500 tracking-widest uppercase">
-                                Предупреждение
-                              </span>
+                        return (
+                          <div
+                            key={idx}
+                            className="relative group rounded-[26px] p-[1px] bg-gradient-to-br from-red-200 via-white to-orange-100 shadow-sm hover:shadow-xl transition-all duration-300 min-w-[280px]"
+                          >
+                            <div className="relative bg-white rounded-[25px] p-5 overflow-hidden">
+                              {/* X TUGMASI */}
+                              <button
+                                onClick={() =>
+                                  setDismissedAlerts((prev) => [...prev, key])
+                                }
+                                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-red-100 hover:text-red-500 text-slate-400 transition-all z-20"
+                                title="Скрыть"
+                              >
+                                <X size={10} strokeWidth={3} />
+                              </button>
 
-                              <h3 className="text-[15px] font-black text-slate-800 leading-tight truncate">
-                                {name}
-                              </h3>
-
-                              <span className="text-[12px] font-medium text-slate-400">
-                                запас низкий
-                              </span>
-                            </div>
-
-                            {/* RIGHT - Dumaloqni kichraytirdik */}
-                            <div className="flex flex-col items-center shrink-0">
-                              <div className="relative w-10 h-10">
-                                {" "}
-                                {/* w-12 dan w-10 ga kichraydi */}
-                                <svg className="w-10 h-10 -rotate-90">
-                                  <circle
-                                    cx="20"
-                                    cy="20"
-                                    r="17"
-                                    stroke="#f1f1f1"
-                                    strokeWidth="3.5"
-                                    fill="none"
-                                  />
-                                  <circle
-                                    cx="20"
-                                    cy="20"
-                                    r="17"
-                                    stroke="#ef4444"
-                                    strokeWidth="3.5"
-                                    fill="none"
-                                    strokeDasharray={
-                                      107
-                                    } /* Radius 17 bo'lgani uchun o'zgardi (2 * PI * 17) */
-                                    strokeDashoffset={
-                                      107 - (107 * percent) / 100
-                                    }
-                                    strokeLinecap="round"
-                                    className="transition-all duration-700"
-                                  />
-                                </svg>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className="text-[11px] font-black text-slate-800">
-                                    {item.count}
+                              {/* ASOSIY CONTENT - pt-4 qo'shildi, "x" dan masofa tashlash uchun */}
+                              <div className="flex justify-between items-center relative z-10 gap-3">
+                                {/* LEFT */}
+                                <div className="flex flex-col gap-1 flex-1">
+                                  <span className="text-[10px] font-black text-red-500 tracking-widest uppercase">
+                                    Предупреждение
                                   </span>
+                                  <h3 className="text-[15px] font-black text-slate-800 leading-tight truncate">
+                                    {name}
+                                  </h3>
+                                  <span className="text-[12px] font-medium text-slate-400">
+                                    запас низкий
+                                  </span>
+                                </div>
+
+                                {/* RIGHT - Son va Unit */}
+                                <div className="flex flex-col items-center shrink-0 pt-2">
+                                  {/* Dumaloq ichidagi son markazlashtirildi */}
+                                  <div className="relative w-10 h-10 flex items-center justify-center">
+                                    <svg className="absolute inset-0 w-10 h-10 -rotate-90">
+                                      <circle
+                                        cx="20"
+                                        cy="20"
+                                        r="17"
+                                        stroke="#f1f1f1"
+                                        strokeWidth="3.5"
+                                        fill="none"
+                                      />
+                                      <circle
+                                        cx="20"
+                                        cy="20"
+                                        r="17"
+                                        stroke="#ef4444"
+                                        strokeWidth="3.5"
+                                        fill="none"
+                                        strokeDasharray={107}
+                                        strokeDashoffset={
+                                          107 - (107 * percent) / 100
+                                        }
+                                        strokeLinecap="round"
+                                        className="transition-all duration-700"
+                                      />
+                                    </svg>
+                                    {/* Son aniq o'rtada */}
+                                    <span className="relative z-10 text-[11px] font-black text-slate-800">
+                                      {Number(
+                                        Number(item.count || 0).toFixed(2)
+                                      )}
+                                    </span>
+                                  </div>
+                                  {/* Unit (шт) - mt-1 bilan dumaloqqa yaqinlashtirildi */}
+                                  <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">
+                                    шт
+                                  </p>
                                 </div>
                               </div>
 
-                              <span className="text-[10px] text-slate-400 font-bold mt-1 uppercase">
-                                шт
-                              </span>
+                              {/* bottom bar */}
+                              <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-red-500 to-orange-400 transition-all duration-700"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
                             </div>
                           </div>
-                          {/* bottom hint bar */}
-                          <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-red-500 to-orange-400 transition-all duration-700"
-                              style={{ width: `${percent}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* ASOSIY JADVAL */}
             <div className="bg-white rounded-[35px] p-8 shadow-sm border border-slate-50">
@@ -1501,7 +1529,9 @@ const Products = () => {
                                 : "text-orange-500"
                             }`}
                           >
-                            {movements[0]?.balanceAfter ?? 0}{" "}
+                            {Number(
+                              Number(movements[0]?.balanceAfter || 0).toFixed(2)
+                            )}{" "}
                             {movements[0]?.edinisaIzmereniya?.title || "шт"}
                           </span>
                         </p>
@@ -1566,7 +1596,9 @@ const Products = () => {
                                   Было
                                 </p>
                                 <p className="text-[13px] font-black text-slate-500 leading-none">
-                                  {move.balanceBefore}
+                                  {Number(
+                                    Number(move.balanceBefore || 0).toFixed(2)
+                                  )}
                                 </p>
                               </div>
                               <div
@@ -1591,7 +1623,9 @@ const Products = () => {
                                       : "text-orange-500"
                                   }`}
                                 >
-                                  {move.balanceAfter}
+                                  {Number(
+                                    Number(move.balanceAfter || 0).toFixed(2)
+                                  )}
                                 </p>
                               </div>
                             </div>
