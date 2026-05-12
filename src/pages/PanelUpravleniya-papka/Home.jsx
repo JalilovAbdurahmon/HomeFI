@@ -396,7 +396,7 @@ const Home = () => {
       </div>
 
       {/* CHART SECTION */}
-      {/* <div className="bg-white p-8 rounded-[35px] shadow-sm border border-gray-50 mb-8">
+      <div className="bg-white p-8 rounded-[35px] shadow-sm border border-gray-50 mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <BarChart3 className="text-indigo-500" size={22} />
@@ -405,7 +405,7 @@ const Home = () => {
             </h2>
           </div>
 
-          Chart filters
+          {/* Chart filters */}
           <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 w-fit">
             {CHART_FILTERS.map((f) => (
               <button
@@ -494,7 +494,7 @@ const Home = () => {
             </ResponsiveContainer>
           </div>
         )}
-      </div> */}
+      </div>
 
       {/* QUICK ACTIONS */}
       {/* <div className="bg-white p-8 rounded-[35px] shadow-sm border border-gray-50">
