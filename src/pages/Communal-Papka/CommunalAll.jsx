@@ -436,7 +436,8 @@ const CommunalAll = () => {
     });
   };
 
-  const handleDeleteConfirm = (id) => {й
+  const handleDeleteConfirm = (id) => {
+    й;
     // Toast ichida bizning maxsus komponentimiz chiqadi
     toast.info(
       ({ closeToast }) => (
@@ -848,10 +849,11 @@ const CommunalAll = () => {
                   type="button"
                   onClick={() => setOpen(!open)}
                   className="group w-full flex items-center justify-between px-5 h-[60px] 
-      bg-gradient-to-br from-[#10b981] to-[#059669] 
-      text-white rounded-[20px] font-semibold 
-      shadow-lg shadow-emerald-500/20 
-      hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/30 transition-all duration-300"
+           bg-gradient-to-br from-[#43a047] to-[#2e7d32] 
+           text-white rounded-[20px] font-bold 
+           shadow-lg shadow-green-600/20 
+           hover:-translate-y-1 hover:shadow-xl hover:shadow-green-600/30 
+           transition-all duration-300 border-none"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/15 border border-white/10 group-hover:bg-white/25 transition-all">

@@ -2,13 +2,11 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Bell,
   ChevronDown,
-  User,
-  LogOut,
   X,
   BellRing,
   BellOff,
   CheckCircle,
-  Wallet, // Hamyon ikonkasi
+  Wallet,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -24,7 +22,6 @@ const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [showNotifModal, setShowNotifModal] = useState(false);
   const [notifItems, setNotifItems] = useState([]);
-  const [totalSum, setTotalSum] = useState("0");
   const [username, setUsername] = useState(
     localStorage.getItem("username") || "User"
   );
@@ -37,9 +34,7 @@ const Navbar = () => {
       const res = await instance.get("/xaridlar");
       const today = new Date().toISOString().split("T")[0];
 
-      // Umumiy summani backenddan olish
-      setTotalSum(res.data.totalSum || "0");
-
+      // Faqat muddati bugun yoki bugundan o'tib ketgan mahsulotlarni filtrlash
       const filtered = res.data.products.filter(
         (item) => item.neededBy && item.neededBy <= today
       );
@@ -49,11 +44,29 @@ const Navbar = () => {
     }
   };
 
+  // Navbar.jsx ichida notificationTotal hisoblash qismi
+  const notificationTotal = notifItems.reduce((acc, item) => {
+    // 1. item.sum ni olamiz, agar u bo'sh bo'lsa narx * miqdorni hisoblaymiz
+    let rawValue =
+      item.sum || Number(item.priceForOne || 0) * Number(item.quantity || 0);
+
+    // 2. Agar rawValue matn bo'lsa (masalan: "750 000"), ichidagi hamma bo'sh joylarni olib tashlaymiz
+    // Chunki "750 000" ni Number() funksiyasi tushunmaydi va NaN (0) qaytaradi
+    const cleanValue =
+      typeof rawValue === "string"
+        ? rawValue.replace(/\s/g, "").replace(/,/g, "")
+        : rawValue;
+
+    // 3. Toza sonni umumiy hisobga qo'shamiz
+    return acc + (Number(cleanValue) || 0);
+  }, 0);
+
   const handleBought = async (id) => {
     try {
       await instance.delete(`/xaridlar/${id}`);
+      // Lokal stateni yangilash
       setNotifItems((prev) => prev.filter((item) => item._id !== id));
-      fetchNotifications(); // Summani yangilash
+      // Boshqa sahifalarga xabar yuborish
       window.dispatchEvent(new Event("xaridUpdated"));
     } catch (err) {
       alert("Xatolik yuz berdi!");
@@ -96,7 +109,7 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* 👤 User Profile (O'zgarishsiz) */}
+      {/* 👤 User Profile */}
       <div className="flex items-center gap-4" ref={menuRef}>
         <div className="relative">
           <button
@@ -119,7 +132,17 @@ const Navbar = () => {
               }`}
             />
           </button>
-          {/* Dropdown menu shu yerda bo'ladi... */}
+
+          {open && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl p-2 animate-in zoom-in-95 duration-200">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 text-rose-600 hover:bg-rose-50 rounded-xl transition-all font-bold text-sm"
+              >
+                LogOut
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -150,18 +173,18 @@ const Navbar = () => {
               </button>
             </div>
 
-            {/* 💰 TOTAL BUDGET SECTION (Modal ichida, ro'yxatdan tepada) */}
+            {/* 💰 DYNAMIC NOTIFICATION BUDGET */}
             <div className="px-6 pt-6">
-              <div className="flex items-center gap-4 bg-indigo-50/50 border border-indigo-100 p-4 rounded-[24px]">
-                <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100">
+              <div className="flex items-center gap-4 bg-amber-50/50 border border-amber-100 p-4 rounded-[24px]">
+                <div className="p-3 bg-amber-500 text-white rounded-2xl shadow-lg shadow-amber-100">
                   <Wallet size={20} />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[11px] uppercase font-bold text-indigo-400 tracking-wider">
-                    Общий бюджет
+                  <span className="text-[11px] uppercase font-bold text-amber-500 tracking-wider">
+                    Сумма уведомлений
                   </span>
                   <span className="text-xl font-black text-slate-800">
-                    {totalSum}{" "}
+                    {notificationTotal.toLocaleString()}{" "}
                     <small className="text-xs text-slate-400 font-bold">
                       СУМ
                     </small>
@@ -182,12 +205,12 @@ const Navbar = () => {
                       <h3 className="font-extrabold text-slate-800 text-base">
                         {item.productTitle || item.name}
                       </h3>
-                      <span className="text-[11px] font-black text-slate-900 uppercase">
+                      <span className="text-[11px] font-black text-rose-500 uppercase">
                         до {item.neededBy}
                       </span>
                     </div>
                     <div className="flex justify-between items-end pt-3 border-t border-slate-50">
-                      <div className="flex flex-row gap-1 text-[13px] text-slate-600 font-bold">
+                      <div className="flex flex-row gap-4 text-[13px] text-slate-600 font-bold">
                         <span>📦 {item.quantity} шт/кг</span>
                         <span className="text-indigo-600">
                           💰 {item.sum?.toLocaleString()} сум
@@ -208,7 +231,7 @@ const Navbar = () => {
               ) : (
                 <div className="py-12 text-center text-slate-400">
                   <BellOff size={40} className="mx-auto mb-3 opacity-20" />
-                  <p className="font-bold">Hozircha xaridlar yo'q</p>
+                  <p className="font-bold">Покупок пока нет</p>
                 </div>
               )}
             </div>

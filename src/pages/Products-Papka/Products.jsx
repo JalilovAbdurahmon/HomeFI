@@ -33,6 +33,7 @@ import { exportProductsToPDF } from "../../utils/exportHelpers";
 import ProductIcon from "../../components/ProductsIcon";
 import ModalStructure from "../Products-Papka/ProductsCreateForm";
 import { useNavigate } from "react-router-dom";
+import { addToZakup } from "../../utils/zakupService";
 
 const Products = () => {
   const [activeQuick, setActiveQuick] = useState(null);
@@ -62,6 +63,13 @@ const Products = () => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // --- Xarid (Zakup) yaratish uchun yangi nomlangan statelar ---
+  const [isZakupModalOpen, setIsZakupModalOpen] = useState(false); // Modal nomi o'zgardi
+  const [zakupItem, setZakupItem] = useState(null); // selectedProduct o'rniga zakupItem
+  const [zakupQuantity, setZakupQuantity] = useState(1); // quantity o'rniga zakupQuantity
+  const [neededByDate, setNeededByDate] = useState(""); // neededBy o'rniga neededByDate
+  const [zakupNote, setZakupNote] = useState(""); // note o'rniga zakupNote
 
   const [productSearch, setProductSearch] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState([]);
@@ -420,6 +428,59 @@ const Products = () => {
     return runningBalance;
   };
 
+  const handleConfirmZakup = async () => {
+    if (!neededByDate) {
+      alert("Iltimos, sanani tanlang!");
+      return;
+    }
+
+    const data = {
+      productTitle: zakupItem.displayTitle, // 1-qadamda topilgan nom
+      priceForOne: Number(zakupItem.priceForOne) || 0,
+      quantity: Number(zakupQuantity),
+      neededBy: neededByDate,
+      note: zakupNote || "Products sahifasidan qo'shildi",
+      category: "products",
+    };
+
+    try {
+      await addToZakup(data);
+      toast.success(
+        ({ closeToast }) => (
+          <div className="flex items-center gap-3 py-1">
+            <div className="bg-[#4ca750] p-2 rounded-xl shadow-lg shadow-green-100">
+              {/* Raketa yoki PlusCircle - ixtiyoring, raketa Products'dagi tugmaga mos tushadi */}
+              <span className="text-white text-lg">🚀</span>
+            </div>
+            <div className="flex flex-col">
+              <p className="text-gray-800 font-extrabold text-[13px] leading-tight uppercase">
+                Добавлено в закупку!
+              </p>
+              <p className="text-gray-500 text-[11px] mt-0.5">
+                {zakupItem?.displayTitle || zakupItem?.title} добавлен в список
+              </p>
+            </div>
+          </div>
+        ),
+        {
+          icon: false,
+          className: "rounded-[24px] border-none shadow-2xl bg-white p-4",
+          autoClose: 3000,
+          style: { borderRadius: "24px" }, // Ba'zan Tailwind class'i yetmay qolsa, inline style yordam beradi
+        }
+      );
+
+      // Modalni yopish va tozalash
+      setIsZakupModalOpen(false);
+      setZakupItem(null);
+      setNeededByDate("");
+      setZakupQuantity(1);
+      setZakupNote("");
+    } catch (err) {
+      alert("Xatolik: " + err.message);
+    }
+  };
+
   const openHistory = (selectedItem) => {
     setIsHistoryLoading(true);
     setHistoryModalItem(selectedItem);
@@ -746,19 +807,33 @@ const Products = () => {
             Управление расходами
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4 w-full max-w-[450px]">
+          {/* 1. ZAKUPKA TUGMASI (Yashil) */}
+          <button
+            onClick={() => {
+              setZakupItem({ title: "", displayTitle: "", priceForOne: "" });
+              setProductSearch("");
+              setIsZakupModalOpen(true);
+            }}
+            className="flex-1 h-[52px] flex items-center justify-center gap-2.5 bg-[#43a047] hover:bg-[#388e3c] text-white rounded-[18px] font-bold text-[14px] uppercase tracking-wide transition-all duration-300 shadow-lg shadow-green-100 hover:shadow-green-200 active:scale-95"
+            title="Zakupga qo'shish"
+          >
+            <span className="text-xl">🛒</span>
+            <span className="text-xs">Добавить Закупку</span>
+          </button>
+
+          {/* 2. DOBAVIT CHEK TUGMASI (Gradient Indigo) */}
           <button
             onClick={() => openAddModal("expense")}
-            className="group relative flex items-center gap-3 bg-gradient-to-br from-[#4f46e5] via-[#3730a3] to-[#1e1b4b]q text-white px-6 py-4 rounded-[20px] font-black tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-[0_10px_20px_-5px_rgba(220,38,38,0.4)]"
+            className="flex-1 h-[52px] group relative flex items-center justify-center gap-2.5 bg-gradient-to-br from-[#4f46e5] to-[#3730a3] text-white rounded-[18px] font-bold text-[14px] uppercase tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-lg shadow-indigo-100"
           >
-            <div className="relative flex items-center justify-center bg-white/20 p-1.5 rounded-xl group-hover:rotate-90 transition-transform duration-500">
+            <div className="flex items-center justify-center bg-white/20 p-1.5 rounded-lg group-hover:rotate-12 transition-transform duration-300">
               <TrendingDown size={18} strokeWidth={3} />
             </div>
-            <span className="relative drop-shadow-md text-sm">
-              Добавить чек
-            </span>
+            <span className="drop-shadow-md text-xs">Добавить Чек</span>
           </button>
-          {/* <button
+        </div>
+        {/* <button
               onClick={() => openAddModal("expense")}
               className="group relative flex items-center gap-3 bg-gradient-to-br from-[#ef4444] via-[#dc2626] to-[#b91c1c] text-white px-6 py-4 rounded-[20px] font-black tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-95 shadow-[0_10px_20px_-5px_rgba(220,38,38,0.4)]"
             >
@@ -767,7 +842,7 @@ const Products = () => {
               </div>
               <span className="relative drop-shadow-md text-sm">РАСХОД</span>
             </button> */}
-          {/* <button
+        {/* <button
               onClick={() => openAddModal("income")}
               className="group relative flex items-center gap-3 bg-gradient-to-br from-green-500 via-green-600 to-green-700 text-white px-6 py-4 rounded-[20px] font-black tracking-wide overflow-hidden transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_15px_30px_-5px_rgba(34,197,94,0.4)] active:scale-95 shadow-[0_10px_20px_-5px_rgba(34,197,94,0.3)]"
             >
@@ -776,7 +851,6 @@ const Products = () => {
               </div>
               <span className="relative drop-shadow-md text-sm">ПРИХОД</span>
             </button> */}
-        </div>
       </div>
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -785,7 +859,7 @@ const Products = () => {
           <div className="flex justify-start items-center gap-3 ml-6">
             <button
               onClick={() => setOpenDateModal(true)}
-              className="h-[54px] flex items-center gap-3 bg-[#2e5cdb] text-white px-6 rounded-[20px] font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all"
+              className="h-[54px] flex items-center gap-3 bg-gradient-to-br from-[#4f46e5] to-[#3730a3] text-white px-6 rounded-[20px] font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all border-none"
             >
               <Calendar size={18} />
               <span className="text-sm">
@@ -1092,7 +1166,7 @@ const Products = () => {
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="h-[48px] flex items-center gap-2 bg-[#10a37f] text-white px-6 rounded-[20px] font-bold shadow-lg active:scale-95 transition-all"
+                className="h-[48px] flex items-center gap-2 bg-[#43a047] hover:bg-[#388e3c] text-white px-6 rounded-[20px] font-bold shadow-lg shadow-green-600/20 active:scale-95 transition-all border-none cursor-pointer"
               >
                 <FileText size={18} />
                 <span className="text-[13px]">Сохранить отчёт</span>
@@ -1327,7 +1401,7 @@ const Products = () => {
                         <div className="absolute top-0 left-6 right-6 h-[2px] rounded-b-full bg-gradient-to-r from-transparent via-indigo-200 to-transparent" />
 
                         {/* РАСХОД badge */}
-                        <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-50 text-red-400 border border-red-100">
+                        <div className="absolute top-2.5 right-4 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-red-50 text-red-400 border border-red-100">
                           Расход
                         </div>
 
@@ -1347,7 +1421,7 @@ const Products = () => {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 z-30">
+                          <div className="flex items-center gap-1.5 z-30 mt-2">
                             <button
                               onClick={() => openHistory(item)}
                               className="p-2.5 bg-blue-50 text-blue-400 rounded-xl hover:bg-blue-500 hover:text-white transition-all active:scale-90"
@@ -1652,6 +1726,173 @@ const Products = () => {
                         ✕
                       </span>
                     </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {isZakupModalOpen && zakupItem && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm transition-all">
+              {/* Modal asosi - relative qo'shildi */}
+              <div className="bg-white rounded-[28px] w-[420px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 relative">
+                {/* ❌ Yopish tugmasi (X) */}
+                <button
+                  onClick={() => setIsZakupModalOpen(false)}
+                  className="absolute top-4 right-3.5 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:bg-red-500 hover:text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] active:scale-90 transition-all duration-300 z-[10]"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+
+                {/* Header */}
+                <div className="px-7 pt-7 pb-5 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📦</span>
+                    <h3 className="text-xl font-bold text-slate-900 leading-tight">
+                      Добавление товара в закупку
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="p-7 space-y-5">
+                  {/* 1. Название товара + Suggestions */}
+                  <div className="space-y-2 relative">
+                    <label className="text-[10px] font-black text-slate-800 uppercase tracking-wider ml-1">
+                      Название товара
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => {
+                          setProductSearch(e.target.value);
+                          setIsSuggestionsOpen(true);
+                        }}
+                        placeholder="Начните поиск..."
+                        className="w-full px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-slate-400 font-bold text-[15px] text-slate-700 placeholder:text-slate-300 shadow-sm transition-all"
+                      />
+
+                      {/* Suggestions list */}
+                      {isSuggestionsOpen && searchSuggestions.length > 0 && (
+                        <div className="absolute z-[1100] w-full mt-2 bg-white border-2 border-slate-100 rounded-2xl shadow-2xl max-h-[180px] overflow-y-auto">
+                          {searchSuggestions.map((p) => (
+                            <div
+                              key={p._id}
+                              onClick={() => {
+                                setZakupItem({ ...p, displayTitle: p.title });
+                                setProductSearch(p.title);
+                                setIsSuggestionsOpen(false);
+                              }}
+                              className="px-5 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-none font-bold text-sm text-slate-700 transition-colors flex justify-between items-center"
+                            >
+                              <span>{p.title}</span>
+                              <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                {p.edinisaIzmereniya?.title || "шт"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Количество и Цена (50/50) */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-800 uppercase tracking-wider ml-1">
+                        Количество
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={zakupQuantity}
+                          onChange={(e) => setZakupQuantity(e.target.value)}
+                          className="w-full pl-5 pr-14 py-3 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-slate-400 font-bold text-[15px] text-slate-800 shadow-sm transition-all"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+                          {zakupItem?.edinisaIzmereniya?.title || "шт/кг"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-800 uppercase tracking-wider ml-1">
+                        Цена (ед.)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={zakupItem.priceForOne || ""}
+                          onChange={(e) =>
+                            setZakupItem({
+                              ...zakupItem,
+                              priceForOne: e.target.value,
+                            })
+                          }
+                          className="w-full pl-5 pr-12 py-3 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-slate-400 font-bold text-[15px] text-slate-800 shadow-sm transition-all"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-900 font-black text-[8px]">
+                          СУМ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Дата поставки */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-800 uppercase tracking-wider ml-1">
+                      Дата поставки
+                    </label>
+                    <input
+                      type={neededByDate ? "date" : "text"}
+                      value={neededByDate}
+                      onChange={(e) => setNeededByDate(e.target.value)}
+                      placeholder="Выберите дату..."
+                      onFocus={(e) => (e.target.type = "date")}
+                      onBlur={(e) => !neededByDate && (e.target.type = "text")}
+                      className="w-full px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-slate-400 font-bold text-[15px] text-slate-700 shadow-sm transition-all"
+                    />
+                  </div>
+
+                  {/* 4. Комментарий */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-800 uppercase tracking-wider ml-1">
+                      Комментарий
+                    </label>
+                    <textarea
+                      value={zakupNote}
+                      onChange={(e) => setZakupNote(e.target.value)}
+                      placeholder="Дополнительная информация..."
+                      className="w-full px-5 py-3 bg-white border-2 border-slate-200 rounded-2xl outline-none focus:border-slate-400 min-h-[90px] text-sm text-slate-600 font-bold placeholder:text-slate-200 resize-none shadow-sm transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-7 py-6 grid grid-cols-2 gap-4 border-t border-slate-50">
+                  <button
+                    onClick={() => setIsZakupModalOpen(false)}
+                    className="w-full py-3.5 border-2 border-slate-100 hover:bg-slate-50 text-slate-900 font-black text-xs uppercase tracking-wider rounded-2xl transition-all"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={handleConfirmZakup}
+                    className="w-full py-3.5 bg-[#4ca750] hover:bg-green-600 active:scale-95 text-white font-extrabold text-xs uppercase tracking-widest rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <span>🚀</span> Подтвердить
                   </button>
                 </div>
               </div>
