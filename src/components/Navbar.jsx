@@ -7,6 +7,9 @@ import {
   BellOff,
   CheckCircle,
   Wallet,
+  Settings as SettingsIcon,
+  User,
+  LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -34,7 +37,6 @@ const Navbar = () => {
       const res = await instance.get("/xaridlar");
       const today = new Date().toISOString().split("T")[0];
 
-      // Faqat muddati bugun yoki bugundan o'tib ketgan mahsulotlarni filtrlash
       const filtered = res.data.products.filter(
         (item) => item.neededBy && item.neededBy <= today
       );
@@ -44,29 +46,22 @@ const Navbar = () => {
     }
   };
 
-  // Navbar.jsx ichida notificationTotal hisoblash qismi
   const notificationTotal = notifItems.reduce((acc, item) => {
-    // 1. item.sum ni olamiz, agar u bo'sh bo'lsa narx * miqdorni hisoblaymiz
     let rawValue =
       item.sum || Number(item.priceForOne || 0) * Number(item.quantity || 0);
 
-    // 2. Agar rawValue matn bo'lsa (masalan: "750 000"), ichidagi hamma bo'sh joylarni olib tashlaymiz
-    // Chunki "750 000" ni Number() funksiyasi tushunmaydi va NaN (0) qaytaradi
     const cleanValue =
       typeof rawValue === "string"
         ? rawValue.replace(/\s/g, "").replace(/,/g, "")
         : rawValue;
 
-    // 3. Toza sonni umumiy hisobga qo'shamiz
     return acc + (Number(cleanValue) || 0);
   }, 0);
 
   const handleBought = async (id) => {
     try {
       await instance.delete(`/xaridlar/${id}`);
-      // Lokal stateni yangilash
       setNotifItems((prev) => prev.filter((item) => item._id !== id));
-      // Boshqa sahifalarga xabar yuborish
       window.dispatchEvent(new Event("xaridUpdated"));
     } catch (err) {
       alert("Xatolik yuz berdi!");
@@ -114,32 +109,68 @@ const Navbar = () => {
         <div className="relative">
           <button
             onClick={() => setOpen(!open)}
-            className="flex items-center gap-3 p-1.5 pr-4 rounded-full hover:bg-slate-50"
+            className="flex items-center gap-3 p-1.5 pr-4 rounded-full hover:bg-slate-50 transition-colors"
           >
             <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold border-2 border-white shadow-sm">
               {username[0]}
             </div>
             <div className="hidden sm:block text-left leading-none">
               <p className="text-sm font-bold text-slate-700">{username}</p>
-              <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold">
+              <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-wider">
                 Пользователь
               </p>
             </div>
             <ChevronDown
               size={14}
-              className={`text-slate-400 transition-transform ${
+              className={`text-slate-400 transition-transform duration-200 ${
                 open ? "rotate-180" : ""
               }`}
             />
           </button>
 
+          {/* ⚡ YANGILANGAN MULTI-OPTION DROPDOWN MENYU */}
           {open && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl p-2 animate-in zoom-in-95 duration-200">
+            <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl p-2 animate-in zoom-in-95 duration-200 flex flex-col gap-0.5">
+              {/* 1. Shaxsiy Profil tugmasi */}
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  nav("/profileSettings"); // yoki profil uchun alohida route bo'lsa o'shani yozasiz
+                }}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
+              >
+                <div className="p-1.5 bg-slate-50 text-slate-500 rounded-lg group-hover:bg-indigo-50">
+                  <User size={15} />
+                </div>
+                Shaxsiy Profil
+              </button>
+
+              {/* 2. Sozlamalar (Settings) tugmasi */}
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  nav("/settings"); // Biz yaratgan sozlamalar sahifasiga yo'naltiramiz
+                }}
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
+              >
+                <div className="p-1.5 bg-slate-50 text-slate-500 rounded-lg">
+                  <SettingsIcon size={15} />
+                </div>
+                Sozlamalar
+              </button>
+
+              {/* Chiziqcha (Ajratuvchi) */}
+              <div className="my-1 border-t border-slate-100" />
+
+              {/* 3. Chiqish tugmasi */}
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 text-rose-600 hover:bg-rose-50 rounded-xl transition-all font-bold text-sm"
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-all font-bold text-xs"
               >
-                LogOut
+                <div className="p-1.5 bg-rose-50/50 text-rose-500 rounded-lg">
+                  <LogOut size={15} />
+                </div>
+                LogOut (Chiqish)
               </button>
             </div>
           )}

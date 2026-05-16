@@ -73,12 +73,12 @@ export function SidebarWithContentSeparator() {
         </NavLink>
 
         {/* ANALYTICS */}
-        <NavLink to="/budget" className={activeClass}>
+        {/* <NavLink to="/homeChecks" className={activeClass}>
           <div className="flex items-center gap-4">
             <FaChartLine className="text-[#E879F9]" />
             <span className="text-white">Аналитика расходов</span>
           </div>
-        </NavLink>
+        </NavLink> */}
       </div>
     </div>
   );
